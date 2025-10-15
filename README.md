@@ -19,26 +19,27 @@ First of all, install and setup an Ubuntu environment via WSL. It is also possib
 
 # For Ubuntu Environments
 
-First thing you want to do is to install git through your terminal
-> `sudo apt-get update`
-> `sudo apt-get install git gitk git-gui`
-This will ask for your password
+First thing you want to do is to install git through your terminal  <br>
+> `sudo apt-get update`  <br>
+> `sudo apt-get install git gitk git-gui`  <br>
+This will ask for your password  <br>
 
-Next step is to clone the ardupilot repository by using this command (make sure you are in the directory you want to be in):
-> `git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git` 
-Once you have finished cloning the ardupilot repository, change directory into the ardupilot directory
+Next step is to clone the ardupilot repository by using this command (make sure you are in the directory you want to be in): <br> 
+> `git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git`   <br>
+<br>
+Once you have finished cloning the ardupilot repository, change directory into the ardupilot directory  <br>
 
-> `cd ardupilot`
-Now we have to install some required packages, which is made easy thanks to the script that is provided. Simply run this command: 
-> `Tools/environment_install/install-prereqs-ubuntu.sh -y`
-The -y is used to automatically say 'yes' to all prompts that may pop-up during the install of the required packages
+> `cd ardupilot` <br>
+Now we have to install some required packages, which is made easy thanks to the script that is provided. Simply run this command: <br>
+> `Tools/environment_install/install-prereqs-ubuntu.sh -y`<br>
+The -y is used to automatically say 'yes' to all prompts that may pop-up during the install of the required packages <br>
 Now reload the path: `. ~/.profile`
 
-Now you should be able to build with waf using the following commands:
-> `./waf configure --board sitl`
+Now you should be able to build with waf using the following commands: <br>
+> `./waf configure --board sitl` <br>
 > `./waf copter`
 
-
+This will take a few minutes...
 
 
 
