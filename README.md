@@ -10,14 +10,22 @@ for the physical drone. This is useful during our early stages of planning to te
 
 So how do we setup this ArduPilot SITL? 
 
-# For Windows: 
-First of all, install and setup an Ubuntu environment via WSL. It is also possible to use Cygwin for this setup but WSL is the most simple and efficient method to setup and run. 
+## For Windows: 
+First of all, install and setup an Ubuntu environment via WSL. It is also possible to use Cygwin for this setup but WSL is the most simple and efficient method to setup and run. <br><br>
+> Go to your Search bar and open Powershell (WITH administrator privileges) and type: `wsl --install` <br>
+By default, the distro installed will be Ubuntu. If you want a specific distro, you can see a list of distros using: `wsl.exe --list --online` and you can install
+a specific distro using: `wsl.exe --install [distro_name]` <br>
 
-# For MacOS
+When you have WSL installed, you will have to create a username and password for your Linux distro. **REMEMBER THIS INFORMATION**
+<br>
+More info on WSL and setup can be found here: https://learn.microsoft.com/en-us/windows/wsl/install <br>
 
 
+## For MacOS
 
-# For Ubuntu Environments
+same thing but as ubuntu but get homebrew if you have it yet. ill update this section soon as I don't use macos and dont have much experience
+
+## For Ubuntu Environments
 
 First thing you want to do is to install git through your terminal  <br>
 > `sudo apt-get update`  <br>
@@ -53,7 +61,7 @@ This will take a few minutes...
 
 When we want to run the ArduPilot SITL, we first have to activate the Python virtual environment <br>
 Go to the folder in which you created your Python virtual environment and activate it:<br>
-> `source venv/bin/activate`<br>
+`source venv/bin/activate`<br><br>
 In order to deactivate the venv, type: <br>
 `deactivate` <br>
 
