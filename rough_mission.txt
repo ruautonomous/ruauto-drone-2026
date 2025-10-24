@@ -1,0 +1,69 @@
+Hello! This is just gonna be a file that explains how the mission I uploaded works. I am writing this as of 10/23/2025
+
+Before I start, the code is MESSY right now, this is very much a rough draft that I want people to understand before we get into developing a more complex
+version of the mission code. It may be an eyesore to read but if you have the common message set open and you follow along slowly, I think you
+should be able to understand what we did so far
+    > Speaking of which, heres the common message set: https://mavlink.io/en/messages/common.html
+
+So with the MAVLink mission protocol there are a couple steps we need to follow
+1) Clear the current mission 
+2) Send the MISSION_COUNT message, that outlines how many mission items we are going to send it
+    > A mission item is a mission command (one mission item could be: navigate to waypoint 1 with coords {x,y})
+3) After sending the MISSION_COUNT message, listen for the MISSION_REQUEST or MISSION_REQUEST_INT message sent from the drone
+    > Remember: Listen for a message using connection.recv_match(type="[MESSAGE_NAME]", blocking = True)
+        > Blocking = True for now since we havent implemented asyncio yet
+        > type = "MESSAGE_NAME", the message name has to be a string
+        > Don't forgot to set a variable equal to this (msg = connection.recv_match(...))
+4) Once you recieve a MISSION_REQUEST, respond by sending a MISSION_ITEM_INT message. 
+    > connection.mav.mission_item_int_send(...) --> parameters can be found in the documentation
+    > Sequence is the order, so start with seq = 0, then seq = 1, etc
+    > Current = 1 for the FIRST mission item
+5) Once you send the mission_item_int, repeat step 3 and listen for the next MISSION_REQUEST message, and then repeat step 4 again until 
+   you've sent all n mission items.
+6) Once you sent all mission_item_int messages, listen for a MISSION_ACK message to make sure you're drone "understood" the mission
+
+So this protocol outlined above is what we would typically program... but there were errors... i mean of course there were, when is there ever not?
+
+Let me start with what precedes the mission protocol, which I mean, what do we need to do BEFORE we start uploading a mission?
+
+Well, first things first, we need the drone's current position. So by using a command_long_send(...), sending the MAV_CMD_REQUEST_MESSAGE command
+to request a message called the GLOBAL_POSITION_INT. You then have to listen for the specific message. 
+    > What you get in this GLOBAL_POSITION_INT that we use is as follows:
+        1) Latitude: WSG84 Scaled up integers
+        2) Longitude: WSG84 Scaled up integers
+        3) Relative Altitude: Relative altitude from the ground in MILLIMETERS (NOT METERS!)
+    > Store this message in a variable that you won't overwrite because we use it more than once. 
+    > To access each value of the message (lat,lon,relative_alt), you called the name of the variabe dot the parameter name
+        > [variabe_name].lat OR [variabe_name].lon OR [variabe_name].relative_alt
+        > Outlined in the docs
+
+Obviously we also have to connect to the drone so that code is up top:
+
+> connection = mavutil.mavlink_connection('tcp:127.0.0.1:5763', baud=57600)
+> connection.wait_heartbeat()
+> print('connected')
+
+So as you can see, after getting the drone coordinates I went ahead and uploaded a mission in accordance to the mission protocol. 
+I first sent the nav_takeoff command, then looped through the waypoints and sent a nav_waypoint cmd for each waypoint, then sent a nav_land 
+cmd as my last mission_item. Then I listened for a mission_ack message and printed it out! So did this work? Yes and no.
+
+It worked because I was able to send every mission_item and get the mission_ack message without any runtime errors. Problem was the takeoff command wasn't being
+stored in the mission. So when I uploaded the mission, if I checked QGroundControl, there wouldn't be a takeoff command and I would get a MISSING_TAKEOFF_CMD error
+when I tried to execute the mission itself.
+
+I tried a lot to fix the mission_item itself but to no avail. Other people also had trouble taking off as part of a mission. SO what was the solution?
+        Takeoff manually and then set the mode to AUTO after takeoff
+
+Which is what you can see me do after I print out the mission_ack
+
+After printing out the MISSION_ACK, I ARMED the drone, and set the drone's mode to GUIDED. 
+Then I sent it a nav_takeoff command using COMMAND_LONG. This worked as the drone started taking off in GUIDED mode.
+
+Now, issue was right after I started taking off, it would then execute the command that changes the mode to AUTO which would give a MISSING_TAKEOFF_CMD error once more.
+
+So to fix that, I started requesting the current position of the drone every second, and checked whether the altitude of the drone was within an 
+acceptable range of the target altitude. (Since the drone may be SLIGHTLY higher or lowe than the target altitude and that would still be fine)
+
+Once it was within the range, I would then switch the drone to AUTO mode and then it would continue executing the mission fully. Yay!
+
+git pull the code if you want to test it. Make sure your simulation is running and I'll go over this during meeting 10/27
