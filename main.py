@@ -7,7 +7,7 @@ waypoints = [[-35.3628918, 149.1654175],
              [-35.3632437, 149.1645017], 
              [-35.3635515, 149.1648355]]
 
-geofence_points=[[-35.362892, 149.165418], [-35.362892, 149.165418], [-35.362892, 149.165418], [-35.362892, 149.165418]]
+geofence_points=[[-35.3620520, 149.1644441], [-35.3618603, 149.1660865], [-35.3636463, 149.1664697], [-35.3638879, 149.1647474]]
 
 
 
@@ -109,3 +109,4 @@ connection.mav.command_long_send(connection.target_system, connection.target_com
 
 msg = connection.recv_match(type="COMMAND_ACK", blocking=True)
 print(msg)
+
