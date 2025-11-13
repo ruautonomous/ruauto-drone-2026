@@ -1,8 +1,22 @@
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
+from messages import MessageStream
+import asyncio
 
 class Mission:
     
+    async def uploadMission(self, connection: mavutil.mavtcp, waypoints):
+        messageHelper = MessageStream(connection)
+
+        connection.mav.mission_clear_all_send(connection.target_system, connection.target_component, common.MAV_MISSION_TYPE_MISSION)
+        connection.mav.mission_count_send(connection.target_system, connection.target_component, len(waypoints)+2, common.MAV_MISSION_TYPE_MISSION,0)
+        msg = await asyncio.gather(messageHelper.message_getter(common.MAVLINK_MSG_ID_MISSION_REQUEST), 
+                       messageHelper.message_getter(common.MAVLINK_MSG_ID_MISSION_REQUEST_INT))
+        
+        position = await messageHelper.request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
+        
+
+
     #getPosition
     def getPosition(self, connection: mavutil.mavtcp):  
         connection.mav.command_long_send(connection.target_system, connection.target_component, common.MAV_CMD_REQUEST_MESSAGE, 0, 

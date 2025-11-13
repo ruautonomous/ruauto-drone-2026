@@ -2,7 +2,7 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common 
 import asyncio
 
-from logger import log_message
+#from logger import log_message
 
 # Purpose: To have functions that will
 
@@ -28,7 +28,7 @@ class MessageStream:
             
             
 
-    async def message_getter(self, message_id: int, drone: mavutil.mavctp):
+    async def message_getter(self, message_id: int, drone: mavutil.mavtcp):
         if drone is None:
             drone = self.drone
 
