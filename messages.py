@@ -28,8 +28,11 @@ class MessageStream:
             
             
 
-    async def message_getter(self, message_id: int):
-        msg = self.drone.recv_match(type=f'{common.mavlink_map.get(message_id).msgname}', blocking=False)
+    async def message_getter(self, message_id: int, drone: mavutil.mavctp):
+        if drone is None:
+            drone = self.drone
+
+        msg = drone.recv_match(type=f'{common.mavlink_map.get(message_id).msgname}', blocking=False)
         await asyncio.sleep(1)
         if(msg):
             return msg
