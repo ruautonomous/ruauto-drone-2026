@@ -2,20 +2,11 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
 
 class Mission:
+
+    async def upload_mission_to_drone():
+        pass
+
     
-    #getPosition
-    def getPosition(self, connection: mavutil.mavtcp):  
-        connection.mav.command_long_send(connection.target_system, connection.target_component, common.MAV_CMD_REQUEST_MESSAGE, 0, 
-                                 common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT,0,0,0,0,0,0)
-
-        self.homePos = connection.recv_match(type="GLOBAL_POSITION_INT", blocking=True)
-
-        print("Latitude: " + str(self.homePos.lat))
-        print("Longitude: " + str(self.homePos.lon))
-        print("Relative Altitude: " + str(self.homePos.relative_alt))
-
-        
-
     #initialize
     def prepareMission(self, connection: mavutil.mavtcp, waypoints):
         connection.mav.mission_clear_all_send(connection.target_system, connection.target_component, common.MAV_MISSION_TYPE_MISSION)

@@ -1,5 +1,7 @@
 Hello! This is just gonna be a file that explains how the mission I uploaded works. I am writing this as of 10/23/2025
 
+UPDATE (11/11/2025): IF YOU WANT TO ACCESS THIS CODE ITS IN A FILE CALLED oldMain.py
+
 Before I start, the code is MESSY right now, this is very much a rough draft that I want people to understand before we get into developing a more complex
 version of the mission code. It may be an eyesore to read but if you have the common message set open and you follow along slowly, I think you
 should be able to understand what we did so far

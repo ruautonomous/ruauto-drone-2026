@@ -1,0 +1,9 @@
+WRITING DOWN A GENERAL PLAN
+
+SO ALL THE DRONE "SETUP" stuff can be done at the beginng right after the drone gets a connection. No async code needed yet
+
+When we run an asyncio.gather(*tasks), one of the tasks can be the message_stream which is literally just a .recv_match message 
+that gets every message ever. It proceses the messages by putting all the 'useful' message (ex. MISSION_REQUEST) into a dict or array
+
+Then the function waiting for a specific message can 'look through' the array for the message and if its there, it removes the exact message from thea
+array/dict. 

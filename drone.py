@@ -2,6 +2,7 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
 import asyncio
 from messages import MessageStream
+from logger import logger
 
 class Drone:
 
@@ -19,6 +20,9 @@ class Drone:
     def set_message_stream(self, message_stream):
          self.message_stream = message_stream
 
+    async def start_processes(self, stream: asyncio.Queue):
+        await logger(stream)
+
     async def set_home_position(self):
         gps = await self.message_stream.request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
         
@@ -30,8 +34,6 @@ class Drone:
 
 
     
-    async def heartbeat(self):
-            print(await self.message_stream.message_getter(common.MAVLINK_MSG_ID_HEARTBEAT))
             
 
     def get_home_position(self):

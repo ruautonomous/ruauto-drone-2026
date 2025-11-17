@@ -68,5 +68,10 @@ In order to deactivate the venv, type: <br>
 Then locate your ardupilot folder (containing the cloned ardupilot repository) and change directory into `ardupilot/ArduCopter` <br>
 From there, run this command to activate the SITL: <br>
 > `../Tools/autotest/sim_vehicle.py -v ArduCopter --no-rebuild --no-configure`
+This will start the simulation at the default location defined. If you want a custom location (like the competition location), you have to add the -l flag 
+followed by the lat,long,alt,heading
+> `../Tools/autotest/sim_vehicle.py -v ArduCopter --no-rebuild --no-configure -l 40.5230578,-74.4581335,0,0` 
+The location above is Busch Student Center. Want all the flags that you can add? Run this command:
+`../Tools/autotest/sim_vehicle.py -v ArduCopter -D --help`
 <br><br>
 Once your simulation is running, you can open up QGroundControl and you will be able to see that you are connected to the drone on the SITL.

@@ -1,6 +1,12 @@
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
 
+# important coordinate
+# home position: 35.0607124,-118.1558405
+
+# ../Tools/autotest/sim_vehicle.py -v ArduCopter -l 35.0607124,-118.1558405,0,0 --no-rebuild --no-configure
+
+
 waypoints = [[-35.3628918, 149.1654175], 
              [-35.3624307, 149.1650085], 
              [-35.3626968, 149.1644055], 
@@ -8,6 +14,7 @@ waypoints = [[-35.3628918, 149.1654175],
              [-35.3635515, 149.1648355]]
 
 geofence_points=[[-35.3620520, 149.1644441], [-35.3618603, 149.1660865], [-35.3636463, 149.1664697], [-35.3638879, 149.1647474]]
+
 
 
 
@@ -67,34 +74,7 @@ print('Mission Uploaded!')
 
 
 
-connection.mav.mission_clear_all_send(connection.target_system, connection.target_component, common.MAV_MISSION_TYPE_FENCE)
-connection.mav.mission_count_send(connection.target_system,connection.target_component, len(geofence_points), common.MAV_MISSION_TYPE_FENCE,0)
 
-connection.mav.command_long_send(connection.target_system, connection.target_component, common.MAV_CMD_DO_FENCE_ENABLE , 1, 1, common.FENCE_TYPE_POLYGON, 0, 0, 0, 0, 0)
-msg = connection.recv_match(type="COMMAND_ACK", blocking=True)
-
-print(f"Sending ")
-
-
-msg = connection.recv_match(type=["MISSION_REQUEST", "MISSION_REQUEST_INT"], blocking=True)
-print(msg)
-
-for i,wp in enumerate(geofence_points, start=0):
-    lat, lon = wp
-    
-    msg = connection.recv_match(type=["MISSION_REQUEST", "MISSION_REQUEST_INT"], blocking=True)
-    print(msg)
-    
-    print(f'Sending lat {lat} and long {lon} as fence item {i}')
-    connection.mav.mission_item_int_send(connection.target_system,connection.target_component, i, common.MAV_FRAME_GLOBAL_INT, 
-                                         common.MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION,0, 1, 4, 0, 0, 0, (int)(lat*1e7), (int)(lon * 1e7), 0, 
-                                         common.MAV_MISSION_TYPE_FENCE)
-    print('Sent!')
-
-
-
-print(msg)
-                                 
 connection.mav.command_long_send(connection.target_system, connection.target_component, common.MAV_CMD_COMPONENT_ARM_DISARM, 0, 
                                  1, 0,0,0,0,0,0)
 
@@ -135,3 +115,5 @@ connection.mav.command_long_send(connection.target_system, connection.target_com
 
 msg = connection.recv_match(type="COMMAND_ACK", blocking=True)
 print(msg)
+
+

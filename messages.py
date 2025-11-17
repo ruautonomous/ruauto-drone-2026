@@ -2,14 +2,13 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common 
 import asyncio
 
-from logger import log_message
+from logger import log_message, logger
 
 # Purpose: To have functions that will
 
 class MessageStream:
     stream = asyncio.Queue()
     important_msg = dict()
-
     important = []
 
     def __init__(self, drone: mavutil.mavtcp):
@@ -48,8 +47,8 @@ class MessageStream:
         while True:
             msg = self.drone.recv_match(blocking=False)
             if msg:
-                log_message(msg) # Logs said message
-                # await self.stream.put(msg)
+                # log_message(msg) # Logs said message
+                await self.stream.put(msg)
                 if self.important.__contains__(msg.msgname):
                     self.important_msg[f'{msg.msgname}'] = msg
                     print(f'Added {msg.msgname} to important message dict')
