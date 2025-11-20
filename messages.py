@@ -14,6 +14,7 @@ class MessageStream:
     def __init__(self, drone: mavutil.mavtcp):
         self.drone = drone
         self.initialize_important_messages()
+        
         pass
 
     def initialize_important_messages(self):
@@ -41,15 +42,30 @@ class MessageStream:
                 return self.important_msg.pop(target_message)
             await asyncio.sleep(0.2)
             
-            
+    async def send_command(self, command, 
+                           param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0):
+        
+        self.drone.mav.command_long_send(self.drone.target_system, self.drone.target_component, command, 0, 
+                                         param2,param3,param4,param1,param5,param6,param7)
+        
+        while True:
+            if(self.important_msg.__contains__(f'COMMAND_ACK.{command}')):
+                ack = self.important_msg.pop(f'COMMAND_ACK.{command}')
+                    
+        pass
             
     async def message_stream(self):
         while True:
             msg = self.drone.recv_match(blocking=False)
             if msg:
                 # log_message(msg) # Logs said message
-                await self.stream.put(msg)
                 if self.important.__contains__(msg.msgname):
                     self.important_msg[f'{msg.msgname}'] = msg
                     print(f'Added {msg.msgname} to important message dict')
+                elif msg.msgname == 'COMMAND_ACK':
+                    self.important_msg[f'{msg.msgname}.{msg.command}'] = msg
+                elif msg.msgname == 'MISSION_ACK':
+                    self.important_msg[f'{msg.msgname}.{msg.mission_type}'] = msg
+                else:
+                    await self.stream.put(msg)
             await asyncio.sleep(0.1)
