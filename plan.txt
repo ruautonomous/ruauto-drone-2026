@@ -7,3 +7,8 @@ that gets every message ever. It proceses the messages by putting all the 'usefu
 
 Then the function waiting for a specific message can 'look through' the array for the message and if its there, it removes the exact message from thea
 array/dict. 
+
+
+----
+Known Issues:
+
