@@ -12,3 +12,4 @@ array/dict.
 ----
 Known Issues:
 
+Command 512 (REQUEST_MESSAGE) is sent sucessfully but i never get the actual message

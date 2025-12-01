@@ -9,15 +9,16 @@ class Takeoff:
         self.drone = drone
         pass
 
-    
-from drone import Drone
 
-class Fence:
 
-    def __init__(self, drone: Drone):
-        self.drone = drone
-        pass
+important = ['a','b']
 
-        async def bs():
-            await self.drone.message_stream.send_command(common.MAV_CMD_DO_FENCE_ENABLE,param1=1, param2=common.FENCE_TYPE_POLYGON)
+a = 'a'
+# print(important.__contains__(a))
+# print(len(a))
+# a = ['a','b']
 
+# print(len(a))
+a = ['a','c']
+for msg in a:
+    print(important.__contains__(msg))

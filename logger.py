@@ -6,18 +6,16 @@ import asyncio
 class bcolors:
     # https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
     HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
+    COMMAND = '\033[94m' # darkish blue
+    OKCYAN = '\033[96m' # guess
+    OKGREEN = '\033[92m' # guess
+    YELLOW = '\033[93m' # guess
     FAIL = '\033[91m' # bright red
     HEARTBEAT = '\033[31m' # red
-    ENDC = '\033[0m'
+    ENDC = '\033[0m' # stops the formatting
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
-# print(bcolors.WARNING + "Warning: No active frommets remain. Continue?" + bcolors.ENDC)
-# https://stackoverflow.com/questions/287871/how-do-i-print-colored-text-to-the-terminal
+    MISSION = '\033[38;5;157m' # for messages starting with MISSION_* (light greenish)
 
 async def logger(stream:asyncio.Queue):
     while True:
@@ -34,11 +32,16 @@ def log_message(msg):
         return
     elif msg.msgname == 'COMMAND_ACK':
         command_log(msg)
+    elif msg.msgname.__contains__('MISSION'):
+        mission_log(msg)
     else:
-        print(f'{bcolors.WARNING + msg.msgname + bcolors.ENDC} > {msg}')
-        
+        print(f'{bcolors.YELLOW + msg.msgname + bcolors.ENDC} > {msg}')
+
+def log_custom(msg, important = False):
+    print(f'{(bcolors.FAIL + '[IMPORTANT] ') if important else bcolors.YELLOW}{bcolors.UNDERLINE}CUSTOM{bcolors.ENDC} > {msg}')
+
 def command_log(msg):
-    print_str = (f'{bcolors.OKBLUE + msg.msgname + bcolors.ENDC} ({bcolors.OKCYAN}{msg.command}{bcolors.ENDC}) - ')
+    print_str = (f'{bcolors.COMMAND + msg.msgname + bcolors.ENDC} ({bcolors.OKCYAN}{msg.command}{bcolors.ENDC}) - ')
     match msg.result:
         case common.MAV_RESULT_ACCEPTED:
             print_str = print_str + f'{bcolors.OKGREEN}{msg.result}{bcolors.ENDC}'
@@ -47,12 +50,16 @@ def command_log(msg):
             print_str = print_str + f'{bcolors.FAIL}{msg.result}{bcolors.ENDC}'
             pass
         case _:
-            print_str = print_str + f'{bcolors.WARNING}{msg.result }{bcolors.ENDC}'
+            print_str = print_str + f'{bcolors.YELLOW}{msg.result }{bcolors.ENDC}'
     
     print_str = print_str + f' > {msg}'
     # print(f'{bcolors.OKGREEN + msg.msgname + ' (gcs)  > ' + bcolors.ENDC} {msg}')
     print(print_str)
 
 def mission_log(msg):
-    pass
+    if msg.msgname == 'MISSION_ACK':
+        print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} - {bcolors.OKGREEN if msg.type == 0 else bcolors.FAIL}{'UPLOADED' if msg.type == 0 else 'NOT UPLOADED'}{bcolors.ENDC} > {msg}')
+    else:
+        print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} > {msg}')
+
 

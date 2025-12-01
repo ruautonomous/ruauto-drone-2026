@@ -27,6 +27,9 @@ same thing but as ubuntu but get homebrew if you have it yet. ill update this se
 
 ## For Ubuntu Environments
 
+Before doing anything, run:
+> `sudo apt update && sudo apt upgrade -y`
+
 First thing you want to do is to install git through your terminal  <br>
 > `sudo apt-get update`  <br>
 > `sudo apt-get install git gitk git-gui`<br> <br>

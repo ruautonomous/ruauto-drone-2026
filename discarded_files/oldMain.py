@@ -47,7 +47,8 @@ print('Sending takeoff command')
 connection.mav.mission_item_int_send(connection.target_system,connection.target_component, 0, common.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT, common.MAV_CMD_NAV_TAKEOFF,
                                      1,1,0,0,0,0,(int)(pos.lat),(int)(pos.lon), alt, common.MAV_MISSION_TYPE_MISSION)
 print("Takeoff sent!")
-
+msg = connection.recv_match(type="MISSION_ACK", blocking=True)
+print(msg)
 for i,wp in enumerate(waypoints, start=1):
     lat, lon = wp
     
