@@ -16,6 +16,7 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
     MISSION = '\033[38;5;157m' # for messages starting with MISSION_* (light greenish)
+    SUCCESS = '\033[38;5;82m'
 
 async def logger(stream:asyncio.Queue):
     while True:
@@ -44,22 +45,23 @@ def command_log(msg):
     print_str = (f'{bcolors.COMMAND + msg.msgname + bcolors.ENDC} ({bcolors.OKCYAN}{msg.command}{bcolors.ENDC}) - ')
     match msg.result:
         case common.MAV_RESULT_ACCEPTED:
-            print_str = print_str + f'{bcolors.OKGREEN}{msg.result}{bcolors.ENDC}'
+            print_str = print_str + f'{bcolors.OKGREEN}{'ACCEPTED'}{bcolors.ENDC}'
             pass
         case common.MAV_RESULT_DENIED:
-            print_str = print_str + f'{bcolors.FAIL}{msg.result}{bcolors.ENDC}'
+            print_str = print_str + f'{bcolors.FAIL}{'DENIED'}{bcolors.ENDC}'
             pass
         case _:
             print_str = print_str + f'{bcolors.YELLOW}{msg.result }{bcolors.ENDC}'
     
     print_str = print_str + f' > {msg}'
-    # print(f'{bcolors.OKGREEN + msg.msgname + ' (gcs)  > ' + bcolors.ENDC} {msg}')
     print(print_str)
 
 def mission_log(msg):
     if msg.msgname == 'MISSION_ACK':
-        print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} - {bcolors.OKGREEN if msg.type == 0 else bcolors.FAIL}{'UPLOADED' if msg.type == 0 else 'NOT UPLOADED'}{bcolors.ENDC} > {msg}')
+        print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} - {(bcolors.OKGREEN + 'UPLOADED') if msg.type == 0 else (bcolors.FAIL + 'NOT UPLOADED')}{bcolors.ENDC} > {msg}')
     else:
         print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} > {msg}')
 
+def log_success(msg):
+    print(f'{bcolors.SUCCESS}{bcolors.UNDERLINE}CUSTOM{bcolors.ENDC} > {msg}')
 

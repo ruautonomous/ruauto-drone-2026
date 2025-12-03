@@ -79,15 +79,15 @@ class Mission:
         connection.mav.mission_count_send(connection.target_system,connection.target_component, self.mission_length, common.MAV_MISSION_TYPE_MISSION)
 
         request = await self.drone.message_stream.wait_for_message('MISSION_REQUEST','MISSION_REQUEST_INT')
-        print(f'mission request {request.seq}')
+        # print(f'mission request {request.seq}')
         # print(f'First is  {mission_items[0]}')
         connection.mav.send(mission_items.pop(0))
         # print(f'First is now {mission_items[0]}')
 
         for i,wp in enumerate(waypoints, start=1):
             request = await self.drone.message_stream.wait_for_message('MISSION_REQUEST','MISSION_REQUEST_INT')
-            print(f'mission request {request.seq}')
-            print(request)
+            # print(f'mission request {request.seq}')
+            # print(request)
             log_custom(f'SENDING {wp}')
             connection.mav.send(mission_items.pop(0))
 
@@ -95,5 +95,5 @@ class Mission:
         log_custom(f'mission request {request.seq}. Sending RTL Command')
         connection.mav.send(mission_items.pop(0))
         mission_ack = await self.drone.message_stream.wait_for_message('MISSION_ACK')
-        print(mission_ack)
+        # print(mission_ack)
         pass
