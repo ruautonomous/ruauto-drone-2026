@@ -11,7 +11,6 @@ class Mission:
         
         self.drone = drone
         self.points = points
-        # self.mission_setup()
         pass
     
     def mission_setup(self, waypoints):

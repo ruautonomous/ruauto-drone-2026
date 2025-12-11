@@ -3,6 +3,7 @@ from pymavlink.dialects.v20 import common
 import asyncio
 from messages import MessageStream
 from logger import logger, bcolors
+# from modes import Modes
 # from mission import Mission # unused import currently
 
 class Drone:
@@ -41,14 +42,14 @@ class Drone:
         # print(gps)
         
     async def get_position(self):
-        current_pos = await self.message_stream.request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
+        gps = await self.message_stream.request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
         return [gps.lat, gps.lon, gps.relative_alt]
     
 
     async def start_processes(self, stream: asyncio.Queue, parametersFile = None):
         if parametersFile:
             pass
-            
+        # self.modes = Modes(self)
         await asyncio.gather(self.message_stream.message_stream(), logger(stream), self.set_home_position())
 
 
@@ -66,7 +67,5 @@ class Drone:
     def get_queue(self):
         return self.message_queue
     
-    async def get_message_stream(self):
-        if not self.message_stream == -1:
-            return self.message_stream
-        await asyncio.sleep(0.1)
+    def get_message_stream(self):
+        return self.message_stream
