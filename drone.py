@@ -19,6 +19,7 @@ class Drone:
             self.target_alt = 10# 10 meters
             self.threshhold = 2 # 2 meters
 
+        #TO DO - Remove the port parameter, itll come specified in the config file
     def connect_drone(self,connection_string = 'tcp:127.0.0.1', port = 5763, baud = 57600):
         self.connection = mavutil.mavlink_connection(f'{connection_string}:{port}', baud)
         self.connection.wait_heartbeat()

@@ -2,37 +2,35 @@ from drone import Drone
 from pymavlink.dialects.v20 import common 
 import asyncio
 from mission import Mission
-from py2puml.py2puml import py2puml
 from modes import Modes
+import file_reader
 
-waypoints = [[-35.3628918, 149.1654175], 
-             [-35.3624307, 149.1650085], 
-             [-35.3626968, 149.1644055], 
-             [-35.3632437, 149.1645017], 
-             [-35.3635515, 149.1648355]]
+# waypoints = [[-35.3628918, 149.1654175], 
+#              [-35.3624307, 149.1650085], 
+#              [-35.3626968, 149.1644055], 
+#              [-35.3632437, 149.1645017], 
+#              [-35.3635515, 149.1648355]]
 
             # COORDINATES BELOW ARE LAST YEAR CUASC GEOFENCE BOUNDARY
             # [[35.05932,-118.149], 
             #  [35.06496,-118.156], 
             #  [35.06062,-118.163], 
             #  [35.05932,-118.163]]
-geofence_points= [
-             [35.05932,-118.149], 
-             [35.06496,-118.156], 
-             [35.06062,-118.163], 
-             [35.05932,-118.163]]
-# print('hello world')
 
-config = {}
-with open('info_files/config.txt') as f:
-    while True:
-        read = f.readline()
-        if(read == ''):
-            break
-        read = read.removesuffix('\n').split('=')
-        config[read[0]] = read[1]
-        print(f'{read}')
-    print(config)
+# geofence_points= [
+#              [35.05932,-118.149], 
+#              [35.06496,-118.156], 
+#              [35.06062,-118.163], 
+#              [35.05932,-118.163]]
+
+
+config = file_reader.read_config_file()
+waypoints = file_reader.read_waypoints()
+geofence_points = file_reader.read_geofence()
+
+print(config)
+print(waypoints)
+print(geofence_points)
 
 drone = Drone()
 drone.connect_drone()
