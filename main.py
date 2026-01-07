@@ -3,6 +3,8 @@ from pymavlink.dialects.v20 import common
 import asyncio
 from mission import Mission
 from modes import Modes
+from messages import MessageStream 
+from geofence import Fence
 import file_reader
 
 # waypoints = [[-35.3628918, 149.1654175], 
@@ -26,15 +28,15 @@ import file_reader
 
 config = file_reader.read_config_file()
 waypoints = file_reader.read_waypoints()
-geofence_points = file_reader.read_geofence()
+geofence_points = file_reader.read_geofence('info_files/testingfence.txt')
 
-print(config)
-print(waypoints)
-print(geofence_points)
+# print(config)
+# print(waypoints)
+# print(geofence_points)
 
-drone = Drone()
+drone = Drone('info_files/params.txt')
 drone.connect_drone()
-from messages import MessageStream 
+
 
 connection = drone.get_connection()
 msg_stream = MessageStream(drone=connection)
@@ -42,11 +44,13 @@ drone.set_message_stream(msg_stream)
 
 mission = Mission(drone, waypoints)
 modes = Modes(drone)
+fence = Fence(drone)
 
 async def main():
     print('running')
     
-    await asyncio.gather(drone.start_processes(msg_stream.stream), mission.upload_mission(), modes.rtl())
+    await asyncio.gather(drone.start_processes(msg_stream.stream), fence.upload_fence(geofence_points))
+                        #  , mission.upload_mission(), modes.rtl())
 
 
 asyncio.run(main())

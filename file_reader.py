@@ -7,12 +7,14 @@ def read_config_file(file = 'info_files/config.txt'):
             read = f.readline()
             if(read == ''):
                 break
-            if(read.__contains__('#')):
+            if(read.__contains__('#')): # allows files to have comments
                 continue
             read = read.removesuffix('\n').split('=')
             config[read[0]] = read[1]
         return config
     
+    # not entirely sure why i made a function for reading waypoints and geofences cuz they do the exact same thing.
+
 def read_waypoints(file = 'info_files/waypoints.txt'):
     waypoints = []
     with open(file) as f:
@@ -40,3 +42,5 @@ def read_geofence(file = 'info_files/fence.txt'):
             geofence.append([float(read[0]),float(read[1])])
 
     return geofence
+
+

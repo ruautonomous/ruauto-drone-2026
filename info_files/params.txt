@@ -1,0 +1,3 @@
+altitude=5
+threshhold=1
+# just as a test, this should be ignored when file is parsed

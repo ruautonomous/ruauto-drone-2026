@@ -69,7 +69,7 @@ class MessageStream:
         await self.stream.put(msg)
         if self.important.__contains__(msg.msgname):
             self.important_msg[f'{msg.msgname}'] = msg
-            print(f'Added {msg.msgname} to important message dict')
+            # print(f'Added {msg.msgname} to important message dict')
 
         elif msg.msgname == 'COMMAND_ACK':
             self.important_msg[f'{msg.msgname}.{msg.command}'] = msg

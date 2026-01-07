@@ -3,8 +3,7 @@ from pymavlink.dialects.v20 import common
 import asyncio
 from messages import MessageStream
 from logger import logger, bcolors
-# from modes import Modes
-# from mission import Mission # unused import currently
+from file_reader import read_config_file
 
 class Drone:
 
@@ -13,22 +12,27 @@ class Drone:
     def __init__(self, parametersFile = None):
         self.home_position = {}
         self.message_stream = -1
+        self.modes = -1
+        self.mission = -1
         if(parametersFile):
-            pass
+            params = read_config_file(parametersFile)
+            self.target_alt = int(params['altitude'])
+            self.threshhold = int(params['threshhold'])
         else:
-            self.target_alt = 10# 10 meters
-            self.threshhold = 2 # 2 meters
+            self.target_alt = 10 # 10 meters default
+            self.threshhold = 2 # 2 meters default
+
+        print(f'Drone Parameters: \n    target_alt: {self.target_alt}\n    threshhold: {self.threshhold}')
 
         #TO DO - Remove the port parameter, itll come specified in the config file
     def connect_drone(self,connection_string = 'tcp:127.0.0.1', port = 5763, baud = 57600):
         self.connection = mavutil.mavlink_connection(f'{connection_string}:{port}', baud)
         self.connection.wait_heartbeat()
-        print(f"{bcolors.HEADER} Connected to {connection_string} on port {port} with system id {self.connection.target_system} and component id {self.connection.target_component} {bcolors.ENDC}")
+        print(f"{bcolors.HEADER} -- Connected to {connection_string} on port {port} with system id {self.connection.target_system} and component id {self.connection.target_component} --{bcolors.ENDC}")
         
     def set_message_stream(self, message_stream: MessageStream):
          self.message_stream = message_stream
 
-    
 
     async def set_home_position(self):
         print('REQUESTING GPS')
@@ -53,6 +57,10 @@ class Drone:
         # self.modes = Modes(self)
         await asyncio.gather(self.message_stream.message_stream(), logger(stream), self.set_home_position())
 
+    def set_param(self, param_name, param_value, param_type = common.MAV_PARAM_TYPE_UINT8):
+        connection = self.get_connection()
+        connection.mav.param_set_send(connection.target_system, connection.target_component, param_name, param_value, param_type)
+        
 
     async def send_command(self, command, 
                            param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0):
