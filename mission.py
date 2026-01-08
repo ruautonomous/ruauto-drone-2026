@@ -20,6 +20,9 @@ class Mission:
             connection.mav.mission_clear_all_send(connection.target_system, connection.target_component, common.MAV_MISSION_TYPE_MISSION)
             log_custom("Mission Cleared")
         
+        # if(len(self.points) > 1):
+        #     waypoints = self.points
+
         clean_points = []
         for wp in waypoints:
             if wp[0] < 1e5 and wp[1] < 1e5:

@@ -1,5 +1,5 @@
 from pymavlink import mavutil
-import file_reader
+import utils.file_reader as file_reader
 
 
 config = file_reader.read_config_file()

@@ -1,3 +1,5 @@
-altitude=5
+altitude=2
 threshhold=1
+threshholdZ=1
+# threshholdZ is the maximum permissible error in the Z axis (altitude)
 # just as a test, this should be ignored when file is parsed

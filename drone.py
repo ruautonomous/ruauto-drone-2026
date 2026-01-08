@@ -3,7 +3,7 @@ from pymavlink.dialects.v20 import common
 import asyncio
 from messages import MessageStream
 from logger import logger, bcolors
-from file_reader import read_config_file
+from utils.file_reader import read_config_file
 
 class Drone:
 
@@ -12,8 +12,6 @@ class Drone:
     def __init__(self, parametersFile = None):
         self.home_position = {}
         self.message_stream = -1
-        self.modes = -1
-        self.mission = -1
         if(parametersFile):
             params = read_config_file(parametersFile)
             self.target_alt = int(params['altitude'])
@@ -46,11 +44,15 @@ class Drone:
         print(f'GPS IS {gps}')
         # print(gps)
         
-    async def get_position(self):
+    async def get_position(self) -> list[int]:
         gps = await self.message_stream.request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
         return [gps.lat, gps.lon, gps.relative_alt]
     
-
+    async def get_position_deg(self):
+        gps = await self.get_position()
+        gps[0] = (float)(gps[0]/1e7)
+        gps[1] = (float)(gps[1]/1e7)
+        return gps
     async def start_processes(self, stream: asyncio.Queue, parametersFile = None):
         if parametersFile:
             pass

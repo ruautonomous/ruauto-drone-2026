@@ -25,7 +25,7 @@ def read_waypoints(file = 'info_files/waypoints.txt'):
             if(read.__contains__('#')):
                 continue
             read = read.removesuffix('\n').split(',')
-            waypoints.append([float(read[0]), float(read[1])])
+            waypoints.append([float(read[0]), float(read[1]), float(read[2])])
 
     return waypoints
 

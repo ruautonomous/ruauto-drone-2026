@@ -2,7 +2,7 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
 from drone import Drone
 from messages import MessageStream
-import math_funcs, asyncio
+import utils.math_funcs as math_funcs, asyncio
 from logger import log_custom
 class Modes:
 
