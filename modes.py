@@ -12,15 +12,14 @@ class Modes:
 
     def __init__(self, drone: Drone):
         self.drone  = drone
-        self.message_stream: MessageStream  = drone.get_message_stream
+        # self.message_stream: MessageStream  = drone.get_message_stream
         pass
 
     async def arm_drone(self):
-        # await self.check_stream()
-        ack = await self.message_stream.send_command(common.MAV_CMD_COMPONENT_ARM_DISARM, param1=1, param2=0)
+        ack = await self.drone.send_command(common.MAV_CMD_COMPONENT_ARM_DISARM, param1=1, param2=0)
 
     async def disarm_drone(self):
-        ack = await self.message_stream.send_command(common.MAV_CMD_COMPONENT_ARM_DISARM, param1=0, param2=0)
+        ack = await self.drone.send_command(common.MAV_CMD_COMPONENT_ARM_DISARM, param1=0, param2=0)
     
     async def set_mode(self, mode: str):
         mode_ack = await self.drone.send_command(common.MAV_CMD_DO_SET_MODE, 1, self.mode_map[mode.lower()])

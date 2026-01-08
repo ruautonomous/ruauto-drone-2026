@@ -43,7 +43,6 @@ class Mission:
             home_pos = self.drone.get_home_position()
             # print(f'HOME POS IS {home_pos} with len {len(home_pos)}')
             if len(home_pos) > 0:
-                # print(f'HOME POS IS NOW {home_pos}')
                 break
             await asyncio.sleep(0.1)
 
@@ -70,6 +69,7 @@ class Mission:
         if not self.points == [[0,0]] and waypoints == [0,0]:
             waypoints = self.points
 
+        # print('Mission Upload Sequence Beginning')
         waypoints = self.mission_setup(waypoints)
         connection = self.drone.get_connection()
         
@@ -91,4 +91,5 @@ class Mission:
         log_custom(f'mission request {request.seq}. Sending RTL Command')
         connection.mav.send(mission_items.pop(0))
         mission_ack = await self.drone.message_stream.wait_for_message('MISSION_ACK')
+        log_custom(f'FLIGHT PLAN UPLOADED: {mission_ack}', important=True) # remove this if log becomes cluttered
         pass

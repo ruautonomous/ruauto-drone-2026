@@ -31,7 +31,7 @@ class WaypointNav:
         print('Beginning Mission Upload')
         await self.mission.upload_mission()
         print('Mission Uploaded')
-        # await self.takeoff.takeoff_from_current_pos()
+        await self.takeoff.takeoff_from_current_pos()
 
         pass
 

@@ -2,7 +2,7 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common 
 import asyncio
 from logger import log_custom
-
+from utils.file_reader import read_file
 
 class MessageStream:
     stream = asyncio.Queue()
@@ -16,13 +16,10 @@ class MessageStream:
         pass
 
     def initialize_important_messages(self):
-        # read a list with all messages we need to watch for (GLOBAL_POSITION_INT, MISSION_REQUEST, etc) and add it to self.important
-        # DO later if this strategy for messages works
-
         if not self.drone is None:
-            print('initialized all important messages :)')
-            self.important = ['GLOBAL_POSITION_INT', 'MISSION_REQUEST', 'MISSION_REQUEST_INT']
-        pass
+            self.important = read_file('info_files/important_messages.txt')
+            print(f'initialized all important messages :) --> {self.important}')
+        
 
     async def request_message(self, message_id: int, drone: mavutil.mavtcp = None):
         if drone is None:

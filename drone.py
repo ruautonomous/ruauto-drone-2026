@@ -33,6 +33,7 @@ class Drone:
 
 
     async def set_home_position(self):
+        await asyncio.sleep(0.5)
         print('REQUESTING GPS')
         gps = await self.message_stream.request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
         
@@ -53,11 +54,10 @@ class Drone:
         gps[0] = (float)(gps[0]/1e7)
         gps[1] = (float)(gps[1]/1e7)
         return gps
-    async def start_processes(self, stream: asyncio.Queue, parametersFile = None):
-        if parametersFile:
-            pass
+    
+    async def start_processes(self, stream: asyncio.Queue):
         # self.modes = Modes(self)
-        await asyncio.gather(self.message_stream.message_stream(), logger(stream), self.set_home_position())
+        await asyncio.gather(self.message_stream.message_stream(), self.set_home_position(), logger(stream))
 
     def set_param(self, param_name, param_value, param_type = common.MAV_PARAM_TYPE_UINT8):
         connection = self.get_connection()

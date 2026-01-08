@@ -23,7 +23,6 @@ class Takeoff:
         await self.drone.send_command(common.MAV_CMD_NAV_TAKEOFF, param5=current_pos[0], param6=current_pos[1], param7=altitude)
 
 
-print(file_reader.read_config_file())
 
 # config = {}
 # with open('info_files/config.txt') as f:

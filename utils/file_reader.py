@@ -43,4 +43,15 @@ def read_geofence(file = 'info_files/fence.txt'):
 
     return geofence
 
-
+def read_file(file):
+    items = []
+    with open(file) as f:
+        while True:
+            read = f.readline()
+            if(read == ''):
+                return items
+            if(read.__contains__('#')):
+                continue
+            read = read.removesuffix('\n')
+            items.append(read)
+            
