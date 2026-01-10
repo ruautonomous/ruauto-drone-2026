@@ -41,6 +41,9 @@ def log_message(msg):
 def log_custom(msg, important = False):
     print(f'{(bcolors.FAIL + '[IMPORTANT] ') if important else bcolors.YELLOW}{bcolors.UNDERLINE}CUSTOM{bcolors.ENDC} > {msg}')
 
+def log_system(msg, msgname = 'SYSTEM', color = bcolors.YELLOW):
+    print(f'{color}{bcolors.BOLD}{msgname}{bcolors.ENDC} > {msg}')
+
 def command_log(msg):
     print_str = (f'{bcolors.COMMAND + msg.msgname + bcolors.ENDC} ({bcolors.OKCYAN}{msg.command}{bcolors.ENDC}) - ')
     match msg.result:

@@ -2,7 +2,7 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
 import asyncio
 from messages import MessageStream
-from logger import logger, bcolors
+from logger import logger, bcolors, log_system
 from utils.file_reader import read_config_file
 
 class Drone:
@@ -16,11 +16,15 @@ class Drone:
             params = read_config_file(parametersFile)
             self.target_alt = int(params['altitude'])
             self.threshhold = int(params['threshhold'])
+            self.threshholdZ = int(params['threshholdZ'])
+            self.climbspeed = int(params['climbspeed'])
+            self.airspeed = int(params['airspeed'])
         else:
             self.target_alt = 10 # 10 meters default
             self.threshhold = 2 # 2 meters default
+            self.threshholdZ = 1 # 1 meter default
 
-        print(f'Drone Parameters: \n    target_alt: {self.target_alt}\n    threshhold: {self.threshhold}')
+        log_system(msg=f'Drone Parameters: \n    target_alt: {self.target_alt}\n    threshhold: {self.threshhold}')
 
         #TO DO - Remove the port parameter, itll come specified in the config file
     def connect_drone(self,connection_string = 'tcp:127.0.0.1', port = 5763, baud = 57600):
@@ -47,7 +51,7 @@ class Drone:
         
     async def get_position(self) -> list[int]:
         gps = await self.message_stream.request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
-        return [gps.lat, gps.lon, gps.relative_alt]
+        return [gps.lat, gps.lon, gps.relative_alt/1000]
     
     async def get_position_deg(self):
         gps = await self.get_position()

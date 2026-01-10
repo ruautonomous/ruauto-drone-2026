@@ -32,6 +32,7 @@ class WaypointNav:
         await self.mission.upload_mission()
         print('Mission Uploaded')
         await self.takeoff.takeoff_from_current_pos()
+        await self.takeoff.modes.set_mode('auto')
 
         pass
 

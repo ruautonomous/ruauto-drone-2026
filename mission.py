@@ -64,7 +64,7 @@ class Mission:
         
         return encoded_commands
 
-    async def upload_mission(self, waypoints: list = [0,0]):
+    async def upload_mission(self, waypoints: list = [0,0], no_rtl = False):
         
         if not self.points == [[0,0]] and waypoints == [0,0]:
             waypoints = self.points
@@ -74,6 +74,8 @@ class Mission:
         connection = self.drone.get_connection()
         
         self.mission_length = len(waypoints) + 2
+        if no_rtl: 
+            self.mission_length = self.mission_length-1
         mission_items = await self.get_mission_items(waypoints=waypoints)
 
         log_custom(f'SENDING MISSION COUNT OF {self.mission_length}')
@@ -86,10 +88,10 @@ class Mission:
             request = await self.drone.message_stream.wait_for_message('MISSION_REQUEST','MISSION_REQUEST_INT')
             log_custom(f'SENDING {wp}')
             connection.mav.send(mission_items.pop(0))
-
-        request = await self.drone.message_stream.wait_for_message('MISSION_REQUEST','MISSION_REQUEST_INT')
-        log_custom(f'mission request {request.seq}. Sending RTL Command')
-        connection.mav.send(mission_items.pop(0))
+        if not no_rtl:
+            request = await self.drone.message_stream.wait_for_message('MISSION_REQUEST','MISSION_REQUEST_INT')
+            log_custom(f'mission request {request.seq}. Sending RTL Command')
+            connection.mav.send(mission_items.pop(0))
         mission_ack = await self.drone.message_stream.wait_for_message('MISSION_ACK')
         log_custom(f'FLIGHT PLAN UPLOADED: {mission_ack}', important=True) # remove this if log becomes cluttered
         pass

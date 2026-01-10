@@ -1,7 +1,7 @@
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common 
 import asyncio
-from logger import log_custom
+from logger import log_custom, log_system, bcolors
 from utils.file_reader import read_file
 
 class MessageStream:
@@ -38,9 +38,27 @@ class MessageStream:
                                          param1,param2,param3,param4,param5,param6,param7)
         
         ack =  await self.wait_for_message(f'COMMAND_ACK.{command}')
+        
         log_custom(f'recieved command ack code: {command}')
+        if(ack.result != 0):
+            log_system(msg = "PASSING INTO RESULT HANDLER...STANDBY", msgname="ACK_HANDLER")
+            await self.result_handler(ack)
         return ack # no harm in return the command_ack
         
+    async def result_handler(self, ack, command, 
+                           param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0):
+        match ack.result:
+            case 1: # MAV_RESULT_TEMPORARILY_REJECTED
+                log_system(msg = "MAV RESULT TEMP REJECTED. RETRYING COMMAND IN 1 SECOND", msgname="ACK_HANDLER (RETRYING)")
+                await asyncio.sleep(1)
+                self.send_command(command, 
+                           param1, param2, param3, param4, param5, param6, param7)
+            case 2: # MAV_RESULT_DENIED
+                log_system(msgname="ACK_HANDLER (ERROR)", color=bcolors.FAIL, msg="MAV RESULT FAILED. ONE OR MORE PARAMETERS INVALID")
+            case 3: # MAV_RESULT_UNSUPPORTED
+                log_system(msg="COMMAND UNSUPPORTED", msgname="ACK_HANDLER (UNSUPPORTED)")
+        pass
+
     # 11/26/25 -> Updated this class to be able to wait for multiple messages (useful for mission_request & mission_request_int)
     async def wait_for_message(self, *msgs): 
         while True:

@@ -1,5 +1,7 @@
-altitude=2
+altitude=5
 threshhold=1
 threshholdZ=1
+airspeed=-2
+climbspeed=-2
 # threshholdZ is the maximum permissible error in the Z axis (altitude)
 # just as a test, this should be ignored when file is parsed
