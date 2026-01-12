@@ -2,7 +2,9 @@ import asyncio
 from drone import Drone
 from takeoff import Takeoff
 from mission import Mission
-
+from pymavlink.dialects.v20 import common
+import time
+from logger import log_system, bcolors
 
 '''
 Within the region defined by the flight boundaries, there will be as many as 7 circuit waypoints defined.
@@ -33,9 +35,23 @@ class CircuitTimeTrial:
 
             await self.mission.upload_mission(no_rtl=True)
             if lap == 1:
+                start_time = time.perf_counter()
                 await self.takeoff.takeoff_from_current_pos()
-
-            await self.takeoff.modes.set_mode('auto')
-
+                await self.takeoff.modes.set_mode('auto')
+                await self.drone.send_command(command=common.MAV_CMD_DO_CHANGE_SPEED, param1=common.SPEED_TYPE_AIRSPEED, param2=self.drone.airspeed, param3 = -1)
+                takeoff_time = time.perf_counter()
+                log_system(msgname="TIME ELAPSED SINCE TAKEOFF", msg=f"Time since takeoff: {takeoff_time-start_time}")
+                
+            lap_start = time.perf_counter()
+            
+            while True:
+                reached = await self.drone.message_stream.wait_for_message('MISSION_ITEM_REACHED')
+                if(reached.seq == self.mission.mission_length-1):
+                    lap_end = time.perf_counter()
+                    log_system(msgname="LAP TIME", msg=f"Time took to complete lap {lap}: {lap_end-lap_start}")
+                    break
+            
+            lap = lap+1
+            log_system(msgname="TOTAL TIME ELAPSED", msg=f"{lap_end-start_time}", color=bcolors.SUCCESS)
         await self.takeoff.modes.rtl()
         pass

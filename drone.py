@@ -15,14 +15,16 @@ class Drone:
         if(parametersFile):
             params = read_config_file(parametersFile)
             self.target_alt = int(params['altitude'])
-            self.threshhold = int(params['threshhold'])
-            self.threshholdZ = int(params['threshholdZ'])
+            self.threshhold = float(params['threshhold'])
+            self.threshholdZ = float(params['threshholdZ'])
             self.climbspeed = int(params['climbspeed'])
             self.airspeed = int(params['airspeed'])
         else:
             self.target_alt = 10 # 10 meters default
             self.threshhold = 2 # 2 meters default
             self.threshholdZ = 1 # 1 meter default
+            self.climbspeed = -2
+            self.airspeed = -2
 
         log_system(msg=f'Drone Parameters: \n    target_alt: {self.target_alt}\n    threshhold: {self.threshhold}')
 

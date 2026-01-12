@@ -28,12 +28,14 @@ class WaypointNav:
         
         self.points = await self.organize_points()
         self.mission = Mission(self.drone, self.points)
-        print('Beginning Mission Upload')
+        # print('Beginning Mission Upload')
         await self.mission.upload_mission()
-        print('Mission Uploaded')
+        # print('Mission Uploaded')
         await self.takeoff.takeoff_from_current_pos()
         await self.takeoff.modes.set_mode('auto')
-
+        await self.wait_for_completion()
+        await self.takeoff.wait_for_landing()
+        await self.takeoff.reset_drone()
         pass
 
     async def organize_points(self) -> list:
@@ -61,3 +63,10 @@ class WaypointNav:
         
         return self.next_closest_point(current_pos, organized_points)
         
+    async def wait_for_completion(self): # might move this to a different file if it proves that I may need it for other missions
+        
+        for this_is_an_unused_variable_so_i_can_name_it_whatever_i_want in range(self.mission.mission_length-2):
+            await self.drone.get_message_stream().wait_for_message('MISSION_ITEM_REACHED')
+            
+        logger.log_system(msgname="WAYPOINTS REACHED", msg='ALL WAYPOINTS REACHED')
+        pass

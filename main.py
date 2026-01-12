@@ -28,6 +28,19 @@ drone.set_message_stream(msg_stream)
 # modes = Modes(drone)
 fence = Fence(drone)
 waypointNav = waypointnavigation.WaypointNav(drone, waypoints)
+
+
+async def mission_picker(input, drone, waypoints):
+    print(f'INPUT IS {input}')
+    match(int(input)):
+        case 1:
+            waypointNav = waypointnavigation.WaypointNav(drone, waypoints)
+            print('BEGINNING SETUP')
+            await waypointNav.begin_setup()
+        case 2:
+            trial = circuittimetrial.CircuitTimeTrial(drone, waypoints)
+            await trial.begin_mission()
+
 async def main():
     print('running')
     
@@ -37,14 +50,6 @@ async def main():
 
 asyncio.run(main())
 
-async def mission_picker(input, drone, waypoints):
-    match(input):
-        case 1:
-            waypointNav = waypointnavigation.WaypointNav(drone, waypoints)
-            await waypointNav.begin_setup()
-        case 2:
-            trial = circuittimetrial.CircuitTimeTrial(drone, waypoints)
-            await trial.begin_mission()
 
 
 

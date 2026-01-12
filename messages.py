@@ -42,7 +42,7 @@ class MessageStream:
         log_custom(f'recieved command ack code: {command}')
         if(ack.result != 0):
             log_system(msg = "PASSING INTO RESULT HANDLER...STANDBY", msgname="ACK_HANDLER")
-            await self.result_handler(ack)
+            await self.result_handler(ack, command, param1, param2, param3, param4,param5,param6,param7)
         return ack # no harm in return the command_ack
         
     async def result_handler(self, ack, command, 
@@ -57,6 +57,8 @@ class MessageStream:
                 log_system(msgname="ACK_HANDLER (ERROR)", color=bcolors.FAIL, msg="MAV RESULT FAILED. ONE OR MORE PARAMETERS INVALID")
             case 3: # MAV_RESULT_UNSUPPORTED
                 log_system(msg="COMMAND UNSUPPORTED", msgname="ACK_HANDLER (UNSUPPORTED)")
+            case 4: #MAV_RESULT_FAILED
+                log_system(msgname="ACK_HANDLER (FAILED)", msg="COMMAND FAILED TO EXECUTE. UNEXPECTED PROBLEM OCCURED")
         pass
 
     # 11/26/25 -> Updated this class to be able to wait for multiple messages (useful for mission_request & mission_request_int)
