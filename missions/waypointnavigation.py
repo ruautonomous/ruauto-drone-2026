@@ -37,7 +37,7 @@ class WaypointNav:
         await self.takeoff.wait_for_landing()
         await self.takeoff.reset_drone()
         pass
-
+        
     async def organize_points(self) -> list:
         organized_points = []
         current_pos = await self.drone.get_position_deg()

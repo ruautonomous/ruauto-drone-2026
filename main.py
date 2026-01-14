@@ -27,26 +27,34 @@ drone.set_message_stream(msg_stream)
 # mission = Mission(drone, waypoints)
 # modes = Modes(drone)
 fence = Fence(drone)
-waypointNav = waypointnavigation.WaypointNav(drone, waypoints)
 
 
 async def mission_picker(input, drone, waypoints):
     print(f'INPUT IS {input}')
     match(int(input)):
-        case 1:
+        case 1: # Waypoint Navigation
             waypointNav = waypointnavigation.WaypointNav(drone, waypoints)
             print('BEGINNING SETUP')
             await waypointNav.begin_setup()
-        case 2:
+        case 2: # Circuit Time Trial
             trial = circuittimetrial.CircuitTimeTrial(drone, waypoints)
             await trial.begin_mission()
+        case 3: # Package Drop
+            pass
+        case 4: # Package Delivery
+            pass
+        case 5: # Target Localization
+            pass
+        case 6: # Package Recovery
+            pass
 
 async def main():
     print('running')
     
     await asyncio.gather(drone.start_processes(msg_stream.stream), fence.upload_fence(geofence_points), mission_picker(config['mission'], drone, waypoints))
-                        #  , mission.upload_mission(), modes.rtl())
-
+    
+# TO DO
+# 1) Change the upload_mission() function in missions.py to have the drone go to the altitude specified insteam of the 'target_alt'
 
 asyncio.run(main())
 

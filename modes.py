@@ -30,10 +30,8 @@ class Modes:
         log_custom(f'Return to launch initiated', True)
         await self.set_mode('rtl')
 
-        if(len(self.drone.get_home_position()) < 1):
-            await asyncio.sleep(1)
 
-        homeX, homeY, homeZ = self.drone.get_home_position().values()
+        homeX, homeY, homeZ = (await self.drone.get_home_position()).values()
         current_pos = [0,0,0]
         while True:
             current_pos = await self.drone.get_position()

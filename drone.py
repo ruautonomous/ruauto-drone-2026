@@ -75,7 +75,12 @@ class Drone:
         await self.message_stream.send_command(command=command, 
                                                param1=param1, param2=param2, param3=param3, param4=param4, param5=param5,param6=param6, param7=param7)
     
-    def get_home_position(self):
+    async def get_home_position(self):
+        while True:
+            if(len(self.home_position)>2):
+                break
+            await asyncio.sleep(0.5)
+        
         return self.home_position
     
     def get_connection(self):
