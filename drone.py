@@ -28,9 +28,8 @@ class Drone:
 
         log_system(msg=f'Drone Parameters: \n    target_alt: {self.target_alt}\n    threshhold: {self.threshhold}')
 
-        #TO DO - Remove the port parameter, itll come specified in the config file
     def connect_drone(self,connection_string = 'tcp:127.0.0.1', port = 5763, baud = 57600):
-        self.connection = mavutil.mavlink_connection(f'{connection_string}:{port}', baud)
+        self.connection = mavutil.mavlink_connection(f'{connection_string}', baud)
         self.connection.wait_heartbeat()
         print(f"{bcolors.HEADER} -- Connected to {connection_string} on port {port} with system id {self.connection.target_system} and component id {self.connection.target_component} --{bcolors.ENDC}")
         

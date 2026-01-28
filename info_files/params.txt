@@ -1,3 +1,4 @@
+# this file contains parameters for the drone (but I might change the name of the file)
 altitude=5
 threshhold=1
 threshholdZ=0.1

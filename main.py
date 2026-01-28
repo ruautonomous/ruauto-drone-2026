@@ -6,7 +6,8 @@ import asyncio
 from messages import MessageStream 
 from geofence import Fence
 import utils.file_reader as file_reader
-from missions import waypointnavigation, circuittimetrial
+from logger import log_system, bcolors
+from missions import waypointnavigation, circuittimetrial, packagedelivery, packagedrop, packagerecovery, targetlocalization
 
 config = file_reader.read_config_file()
 waypoints = file_reader.read_waypoints()
@@ -17,8 +18,7 @@ print(waypoints)
 # print(geofence_points)
 
 drone = Drone('info_files/params.txt')
-drone.connect_drone()
-
+drone.connect_drone(config['connection'])
 
 connection = drone.get_connection()
 msg_stream = MessageStream(drone=connection)
@@ -30,6 +30,9 @@ fence = Fence(drone)
 
 
 async def mission_picker(input, drone, waypoints):
+    """
+    Used to execute the mission that is defined in the config.txt
+    """
     print(f'INPUT IS {input}')
     match(int(input)):
         case 1: # Waypoint Navigation
@@ -47,12 +50,14 @@ async def mission_picker(input, drone, waypoints):
             pass
         case 6: # Package Recovery
             pass
+        case _:
+            log_system(msg="Unknown Mission?", msgname="ERROR", color=bcolors.FAIL)
 
 async def main():
     print('running')
     
     await asyncio.gather(drone.start_processes(msg_stream.stream), fence.upload_fence(geofence_points), mission_picker(config['mission'], drone, waypoints))
-    
+
 # TO DO
 # 1) Change the upload_mission() function in missions.py to have the drone go to the altitude specified insteam of the 'target_alt'
 

@@ -1,7 +1,8 @@
 connection=tcp:127.0.0.1:5763
 baud=57600
-mission=2
+mission=1
 # comments shouldnt get read
 # mission numbers
 # 1 - waypoint nav task
 # 2 - time trial
+# config.txt contains information about the connection of the drone, mission we are doing, etc...
