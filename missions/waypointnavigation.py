@@ -24,7 +24,7 @@ class WaypointNav:
         self.takeoff = Takeoff(drone)
         pass
     
-    async def begin_setup(self):
+    async def begin_setup(self, land = True):
         
         self.points = await self.organize_points()
         self.mission = Mission(self.drone, self.points)
@@ -34,8 +34,9 @@ class WaypointNav:
         await self.takeoff.takeoff_from_current_pos()
         await self.takeoff.modes.set_mode('auto')
         await self.wait_for_completion()
-        await self.takeoff.wait_for_landing()
-        await self.takeoff.reset_drone()
+        if land:
+            await self.takeoff.wait_for_landing()
+            await self.takeoff.reset_drone()
         pass
         
     async def organize_points(self) -> list:

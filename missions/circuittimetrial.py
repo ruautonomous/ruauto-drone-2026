@@ -25,7 +25,7 @@ class CircuitTimeTrial:
         pass
 
 
-    async def begin_mission(self):
+    async def begin_mission(self, land = True):
         home_pos = await self.drone.get_home_position()
         print(home_pos)
         self.points.append([home_pos['lat'], home_pos['long'], self.drone.target_alt])
@@ -61,5 +61,6 @@ class CircuitTimeTrial:
             lap = lap+1
             log_system(msgname="TOTAL TIME ELAPSED", msg=f"{lap_end-start_time}", color=bcolors.SUCCESS)
 
-        await self.takeoff.modes.rtl()
-        await self.takeoff.reset_drone()
+        if land:
+            await self.takeoff.modes.rtl()
+            await self.takeoff.reset_drone()

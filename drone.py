@@ -12,21 +12,21 @@ class Drone:
     def __init__(self, parametersFile = None):
         self.home_position = {}
         self.message_stream = -1
-        if(parametersFile):
-            params = read_config_file(parametersFile)
-            self.target_alt = int(params['altitude'])
-            self.threshhold = float(params['threshhold'])
-            self.threshholdZ = float(params['threshholdZ'])
-            self.climbspeed = int(params['climbspeed'])
-            self.airspeed = int(params['airspeed'])
-        else:
-            self.target_alt = 10 # 10 meters default
-            self.threshhold = 2 # 2 meters default
-            self.threshholdZ = 1 # 1 meter default
-            self.climbspeed = -2
-            self.airspeed = -2
+        self.initialize_params(parametersFile)
 
         log_system(msg=f'Drone Parameters: \n    target_alt: {self.target_alt}\n    threshhold: {self.threshhold}')
+
+    
+    def initialize_params(self, parametersFile = None):
+        params = read_config_file(parametersFile) if parametersFile else -1
+        print(params)
+        self.target_alt = int(params['altitude']) if parametersFile else 10
+        self.threshhold = float(params['threshhold']) if parametersFile else 2
+        self.threshholdZ = float(params['threshholdZ']) if parametersFile else 1
+        self.climbspeed = int(params['climbspeed']) if parametersFile else -2
+        self.airspeed = int(params['airspeed']) if parametersFile else -2
+        self.servo_num = int(params['servo_num']) if parametersFile else -1
+        self.square_size = int(params['square_size']) if parametersFile else 1
 
     def connect_drone(self,connection_string = 'tcp:127.0.0.1', port = 5763, baud = 57600):
         self.connection = mavutil.mavlink_connection(f'{connection_string}', baud)
