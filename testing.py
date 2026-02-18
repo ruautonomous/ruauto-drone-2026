@@ -13,6 +13,7 @@ msg_stream = MessageStream(drone=connection)
 drone.set_message_stream(msg_stream)
 
 async def main():
+    
     await asyncio.gather(drone.start_processes(msg_stream.stream))
     pass
 
