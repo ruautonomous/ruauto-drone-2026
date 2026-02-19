@@ -2,6 +2,7 @@ from drone import Drone
 from utils.file_reader import read_config_file
 from messages import MessageStream
 import asyncio
+from pymavlink.dialects.v20 import common
 
 config = read_config_file()
 
@@ -13,8 +14,12 @@ msg_stream = MessageStream(drone=connection)
 drone.set_message_stream(msg_stream)
 
 async def main():
-    
+
     await asyncio.gather(drone.start_processes(msg_stream.stream))
+    pass
+
+async def test_servo(drone:Drone):
+    drone.send_command(command=common.MAV_CMD_DO_SET_SERVO, param1=14, param2=1500)
     pass
 
 asyncio.run(main())

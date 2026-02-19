@@ -29,8 +29,7 @@ class Drone:
         self.square_size = int(params['square_size']) if parametersFile else 1
 
     def connect_drone(self,connection_string = 'tcp:127.0.0.1', port = 5763, baud = 57600):
-        self.connection = mavutil.mavlink_connection(device=connection_string, baud=baud)
-        self.send_heartbeat()
+        self.connection = mavutil.mavlink_connection(device=connection_string) # specifying baud rate breaks everything
         self.connection.wait_heartbeat()
         print(f"{bcolors.HEADER} -- Connected to {connection_string} on port {port} with system id {self.connection.target_system} and component id {self.connection.target_component} --{bcolors.ENDC}")
         
@@ -76,6 +75,7 @@ class Drone:
         await self.message_stream.send_command(command=command, 
                                                param1=param1, param2=param2, param3=param3, param4=param4, param5=param5,param6=param6, param7=param7)
     
+    #unused function
     def send_heartbeat(self):
         self.get_connection().mav.heartbeat_send(common.MAV_TYPE_GCS, common.MAV_AUTOPILOT_GENERIC, common.MAV_MODE_FLAG_STABILIZE_ENABLED, 0, common.MAV_STATE_ACTIVE)
 
