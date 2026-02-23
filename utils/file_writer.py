@@ -20,7 +20,10 @@ def delete_file(file: str): # not sure how useful ts is
         else:
             log_system(msg=f"FILE {file}.txt failed to delete", msgname="FILE NOT DELETED", color=bcolors.FAIL)
 
-    
+
+def messageToFile (messageName, messageValue, fileName):
+        with open (messageName, 'a') as fileName:
+            fileName.write(f'{messageName}={messageValue}\n')
 
 recreate_file('coordinates')
 delete_file('coordinates')

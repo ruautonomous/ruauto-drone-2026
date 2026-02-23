@@ -15,11 +15,11 @@ drone.set_message_stream(msg_stream)
 
 async def main():
 
-    await asyncio.gather(drone.start_processes(msg_stream.stream))
+    await asyncio.gather(drone.start_processes(msg_stream.stream), test_servo(drone))
     pass
 
 async def test_servo(drone:Drone):
-    drone.send_command(command=common.MAV_CMD_DO_SET_SERVO, param1=14, param2=1500)
+    await drone.send_command(command=common.MAV_CMD_DO_SET_SERVO, param1=14, param2=1500)
     pass
 
 asyncio.run(main())

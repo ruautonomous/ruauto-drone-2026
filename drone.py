@@ -18,6 +18,7 @@ class Drone:
 
     
     def initialize_params(self, parametersFile = None):
+        '''Reads the drone settings file and initializes parameters to Drone instance. Called by default constructor'''
         params = read_config_file(parametersFile) if parametersFile else -1
         print(params)
         self.target_alt = int(params['altitude']) if parametersFile else 10
@@ -28,10 +29,10 @@ class Drone:
         self.servo_num = int(params['servo_num']) if parametersFile else -1
         self.square_size = int(params['square_size']) if parametersFile else 1
 
-    def connect_drone(self,connection_string = 'tcp:127.0.0.1', port = 5763, baud = 57600):
+    def connect_drone(self,connection_string = 'tcp:127.0.0.1', port = False, baud = 57600):
         self.connection = mavutil.mavlink_connection(device=connection_string) # specifying baud rate breaks everything
         self.connection.wait_heartbeat()
-        print(f"{bcolors.HEADER} -- Connected to {connection_string} on port {port} with system id {self.connection.target_system} and component id {self.connection.target_component} --{bcolors.ENDC}")
+        print(f"{bcolors.HEADER} -- Connected to {connection_string} on port {port if port else "NO PORT"} with system id {self.connection.target_system} and component id {self.connection.target_component} --{bcolors.ENDC}")
         
     
     def set_message_stream(self, message_stream: MessageStream):
@@ -39,6 +40,7 @@ class Drone:
 
 
     async def set_home_position(self):
+        '''Sets the home position of the drone to the current position of the drone.'''
         await asyncio.sleep(0.5)
         print('REQUESTING GPS')
         gps = await self.message_stream.request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
@@ -52,20 +54,30 @@ class Drone:
         # print(gps)
         
     async def get_position(self) -> list[int]:
+        '''Gets the latitude/longitude of the drone as integers. Altitude remains in meters'''
         gps = await self.message_stream.request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
         return [gps.lat, gps.lon, gps.relative_alt/1000]
     
     async def get_position_deg(self):
+        '''Gets the latitude/longitude of the drone in degrees. Altitude remains in meters'''
         gps = await self.get_position()
         gps[0] = (float)(gps[0]/1e7)
         gps[1] = (float)(gps[1]/1e7)
         return gps
     
+    
     async def start_processes(self, stream: asyncio.Queue):
+        '''Starts crucial processes for the drone that are called once or continue running in the background'''
+    
         # self.modes = Modes(self)
-        await asyncio.gather(self.message_stream.message_stream(), self.set_home_position(), logger(stream))
+        await asyncio.gather(
+            self.message_stream.message_stream(), 
+            self.set_home_position(), 
+            logger(stream)
+            )
 
     def set_param(self, param_name, param_value, param_type = common.MAV_PARAM_TYPE_UINT8):
+        
         connection = self.get_connection()
         connection.mav.param_set_send(connection.target_system, connection.target_component, param_name, param_value, param_type)
         

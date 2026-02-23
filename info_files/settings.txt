@@ -4,7 +4,7 @@ threshhold=1
 threshholdZ=0.1
 airspeed=-2
 climbspeed=-2
-servo_num=-1
+servo_num=14
 square_size=1
 # threshholdZ is the maximum permissible error in the Z axis (altitude)
 # just as a test, this should be ignored when file is parsed
