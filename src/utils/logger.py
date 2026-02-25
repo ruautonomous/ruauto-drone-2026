@@ -27,6 +27,7 @@ async def logger(stream:asyncio.Queue):
         log_message(msg)
 
 def log_message(msg):
+    '''Used to log MAVLINK messages ONLY. DO NOT USE FOR CUSTOM MESSAGES'''
     if msg.msgname == 'HEARTBEAT' and msg.type == 2:
         print(f'{bcolors.HEARTBEAT + msg.msgname + ' (drone) > ' + bcolors.ENDC} {msg}')
         return
@@ -41,12 +42,15 @@ def log_message(msg):
         print(f'{bcolors.YELLOW + msg.msgname + bcolors.ENDC} > {msg}')
 
 def log_custom(msg, important = False):
+    '''Legacy function, recommended to use log_system instead
+        \nLogs a custom message (shows up as yellow), but if the important parameter is set to True, message color is red.'''
     print(f'{(bcolors.FAIL + '[IMPORTANT] ') if important else bcolors.YELLOW}{bcolors.UNDERLINE}CUSTOM{bcolors.ENDC} > {msg}')
 
 def log_system(msg, msgname = 'SYSTEM', color = bcolors.YELLOW):
     print(f'{color}{bcolors.BOLD}{msgname}{bcolors.ENDC} > {msg}')
 
 def command_log(msg):
+    '''For logging commands and the command result. command_result integer is GREEN if accepted, RED if denied or YELLOW if other'''
     print_str = (f'{bcolors.COMMAND + msg.msgname + bcolors.ENDC} ({bcolors.OKCYAN}{msg.command}{bcolors.ENDC}) - ')
     match msg.result:
         case common.MAV_RESULT_ACCEPTED:
@@ -62,11 +66,13 @@ def command_log(msg):
     print(print_str)
 
 def mission_log(msg):
+    '''Used to log a mission_ack message and is clear if the mission has been uploaded or not'''
     if msg.msgname == 'MISSION_ACK':
         print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} - {(bcolors.OKGREEN + 'UPLOADED') if msg.type == 0 else (bcolors.FAIL + 'NOT UPLOADED')}{bcolors.ENDC} > {msg}')
     else:
         print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} > {msg}')
 
 def log_success(msg):
-    print(f'{bcolors.SUCCESS}{bcolors.UNDERLINE}CUSTOM{bcolors.ENDC} > {msg}')
+    '''Used to log a successful action'''
+    print(f'{bcolors.SUCCESS}{bcolors.UNDERLINE}SUCCESS!{bcolors.ENDC} > {msg}')
 

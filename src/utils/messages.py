@@ -18,12 +18,15 @@ class MessageStream:
         
         pass
 
-    def initialize_important_messages(self):
+    def initialize_important_messages(self, file = 'info_files/important_messages.txt'):
+        '''Stores all important messages to a list. When a message is recieved it is compared to the elements of the array, and if the message names match,
+        then the message is stored '''
         if not self.connection is None:
-            self.important_messages = reader.read_file('info_files/important_messages.txt')
+            self.important_messages = reader.read_file(file)
             print(f'initialized all important messages :) --> {self.important_messages}')
 
     async def message_stream(self):
+        '''A function that runs infinitely that listens for messages from the drone'''
         self.initialize_important_messages()
         # await asyncio.create_task(logger(self.stream))
         
@@ -33,12 +36,9 @@ class MessageStream:
                 await self.handle_message(msg)
             await asyncio.sleep(0.01)
 
-    async def request_message(self, message_id: int, drone: mavutil.mavtcp = None):
-        if drone is None:
-            drone = self.connection
-
+    async def request_message(self, message_id: int):
+        '''Used to request a specific messages'''
         await self.send_command(command= common.MAV_CMD_REQUEST_MESSAGE, param1= message_id)
-
         target_message = common.mavlink_map.get(message_id).msgname
         return await self.wait_for_message(target_message)
 
@@ -46,9 +46,9 @@ class MessageStream:
     async def send_command(self, command, 
                            param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 5):
         
-        self.drone.mav.command_long_send(self.drone.target_system, self.drone.target_component, command, 0, 
+        self.connection.mav.command_long_send(self.connection.target_system, self.connection.target_component, command, 0, 
                                          param1,param2,param3,param4,param5,param6,param7)
-        
+        print(f"SENT COMMAND {command}")
         # ack =  await self.wait_for_message(f'COMMAND_ACK.{command}')
         try:
             ack = await asyncio.wait_for(self.wait_for_message(f'COMMAND_ACK', secondary=command), timeout=timeout)

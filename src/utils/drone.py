@@ -16,7 +16,7 @@ class Drone:
 
 
     def retrieve_configuration(self, parametersFile = None, configFile = None):
-        '''Reads the drone settings file and initializes parameters to Drone instance. Called by default constructor'''
+        '''Reads the drone settings file and initializes parameters to Drone instance'''
         params = read_config_file(parametersFile) if parametersFile else -1
         print(params)
         self.target_alt = int(params['altitude']) if parametersFile else 10
@@ -30,8 +30,8 @@ class Drone:
         if(configFile):
             self.config = read_config_file(configFile)
 
-    def connect_drone(self,connection_string = 'tcp:127.0.0.1', port = False):
-        '''This method is used to '''
+    def connect_drone(self,connection_string = 'tcp:127.0.0.1:5763', port = False):
+        '''This method is used to connect to the drone given the connection string'''
         print(connection_string)
         self.connection: mavutil.mavtcp = mavutil.mavlink_connection(device=connection_string) # specifying baud rate breaks everything
         self.connection.wait_heartbeat()
@@ -60,13 +60,17 @@ class Drone:
             log_system(msg="Sent heartbeat to drone from GCS")
             await asyncio.sleep(1)
 
+    async def send_command(self, command, 
+                           param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 5):
+        return await self.message_stream.send_command(command=command, param1=param1, param2=param2, param3=param3, param4=param4,
+                                                                          param5=param5, param6=param6, param7=param7, timeout=timeout)
 
     async def start_background_processes(self):
         await asyncio.create_task(self.message_stream.message_stream())
         await asyncio.create_task(self.send_heartbeat())
-        await asyncio.create_task(self.message_stream.watch_for_heartbeat())
+        await asyncio.create_task(self.message_stream.watch_for_heartbeat())   
         
-
+    # GETTERS
 
     def get_connection(self):
         return self.connection
@@ -74,3 +78,5 @@ class Drone:
 class DroneProperties:
 
     CONNECTION = 'connection'
+    BAUD = 'baud'
+    MISSION = 'mission'
