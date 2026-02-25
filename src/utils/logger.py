@@ -18,7 +18,9 @@ class bcolors:
     MISSION = '\033[38;5;157m' # for messages starting with MISSION_* (light greenish)
     SUCCESS = '\033[38;5;82m'
 
-async def logger(stream:asyncio.Queue):
+
+async def logger(stream:asyncio.Queue): 
+    '''DEPRECATED - Functionality of this function integrated into handle_message() in messages.py'''
     while True:
         msg = await stream.get()
         # print('getting from message-stream')

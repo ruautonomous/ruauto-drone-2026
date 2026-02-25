@@ -1,8 +1,8 @@
 import asyncio
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
-from utils.logger import log_custom, log_message, log_system, bcolors
-import io.file_reader as reader 
+from utils.logger import log_custom, log_message, log_system, bcolors, logger
+import helper.file_reader as reader 
 
 class MessageStream:
 
@@ -11,10 +11,10 @@ class MessageStream:
         self.important_messages = None
         self.stored_messages: dict[str, asyncio.Future] = {}
         self.connection = connection
-        logger.log_message(msg="Initializing Message Stream")
+        log_system(msg="Initializing Message Stream")
         self.stream = asyncio.Queue()
         
-        asyncio.create_task(self.message_stream())
+        # asyncio.create_task(self.message_stream())
         
         pass
 
@@ -24,6 +24,9 @@ class MessageStream:
             print(f'initialized all important messages :) --> {self.important_messages}')
 
     async def message_stream(self):
+        self.initialize_important_messages()
+        # await asyncio.create_task(logger(self.stream))
+        
         while True:
             msg = self.connection.recv_match(blocking=False)
             if msg:
@@ -41,14 +44,14 @@ class MessageStream:
 
             
     async def send_command(self, command, 
-                           param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0):
+                           param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 5):
         
         self.drone.mav.command_long_send(self.drone.target_system, self.drone.target_component, command, 0, 
                                          param1,param2,param3,param4,param5,param6,param7)
         
         # ack =  await self.wait_for_message(f'COMMAND_ACK.{command}')
         try:
-            ack = await asyncio.wait_for(self.wait_for_message(f'COMMAND_ACK.{command}'), timeout=5)
+            ack = await asyncio.wait_for(self.wait_for_message(f'COMMAND_ACK', secondary=command), timeout=timeout)
             log_custom(f'recieved command ack code: {command}')
         except TimeoutError:
             log_system(color=bcolors.FAIL, msg=f"FAILED TO RECIEVE COMMAND_ACK ({command})")
@@ -60,13 +63,16 @@ class MessageStream:
         return ack # no harm in return the command_ack
         
     async def result_handler(self, ack, command, 
-                           param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0):
+                           param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, retries: int =3):
         match ack.result:
             case 1: # MAV_RESULT_TEMPORARILY_REJECTED
                 log_system(msg = "MAV RESULT TEMP REJECTED. RETRYING COMMAND IN 1 SECOND", msgname="ACK_HANDLER (RETRYING)")
                 await asyncio.sleep(1)
-                self.send_command(command, 
-                           param1, param2, param3, param4, param5, param6, param7)
+                if(retries > 1):
+                    await self.send_command(command, 
+                               param1, param2, param3, param4, param5, param6, param7, retries=retries-1)
+                else:
+                    log_system(msg='COMMAND REJECTED TOO MANY TIMES', color=bcolors.FAIL)
             case 2: # MAV_RESULT_DENIED
                 log_system(msgname="ACK_HANDLER (ERROR)", color=bcolors.FAIL, msg="MAV RESULT FAILED. ONE OR MORE PARAMETERS INVALID")
             case 3: # MAV_RESULT_UNSUPPORTED
@@ -75,25 +81,24 @@ class MessageStream:
                 log_system(msgname="ACK_HANDLER (FAILED)", msg="COMMAND FAILED TO EXECUTE. UNEXPECTED PROBLEM OCCURED")
         pass
 
-    # 11/26/25 -> Updated this class to be able to wait for multiple messages (useful for mission_request & mission_request_int)
-    async def wait_for_message(self, *msgs, secondary = '1'): 
-        while True:
-            for msg in msgs:
-                
-                future = asyncio.get_running_loop().create_future()
+    # This class given msg or an array of messages, can wait for a specific message to arrive. It creates an asyncio future, and adds it to the
+    # stored_messages dictionary, and once the result of the future is set by the message handler in handle_message(), it returns the message
+    async def wait_for_message(self, *msgs, secondary = '1'):  
+        for msg in msgs:
+            future = asyncio.get_running_loop().create_future()
+            print(f'msg = {msg}')
+            if self.important_messages.__contains__(msg):
+                # print(f'Added {msg.msgname} to important message dict')
+                if msg == 'COMMAND_ACK':
+                    self.stored_messages[f'{msg}.{secondary}'] = future
+                elif msg == 'MISSION_ACK':
+                    self.stored_messages[f'{msg}.{secondary}'] = future
+                else:
+                    self.stored_messages[f'{msg}'] = future
 
-                if self.important_messages.__contains__(msg.msgname):
-                    # print(f'Added {msg.msgname} to important message dict')
-                    if msg.msgname == 'COMMAND_ACK':
-                        self.stored_messages[f'{msg.msgname}.{secondary}'] = future
-                    elif msg.msgname == 'MISSION_ACK':
-                        self.stored_messages[f'{msg.msgname}.{secondary}'] = future
-                    else:
-                        self.stored_messages[f'{msg.msgname}'] = future
-
-                await future
-                return future.result()
-                # if(self.stored_messages.__contains__(msg)):
+            await future
+            return future.result()
+            # if(self.stored_messages.__contains__(msg)):
                 #     ack = self.stored_messages.pop(msg)
                 #     # print(f'Recieved {msg}') # REMOVE THIS LATER
                 #     return ack
@@ -101,15 +106,33 @@ class MessageStream:
             # await asyncio.sleep(0.2)
 
     async def handle_message(self, msg):
-        await self.stream.put(msg)
+        # await self.stream.put(msg)
+        log_message(msg)
+
         if self.important_messages.__contains__(msg.msgname):
             if msg.msgname == 'COMMAND_ACK':
                 self.stored_messages[f'{msg.msgname}.{msg.command}'].set_result(msg)
             elif msg.msgname == 'MISSION_ACK':
                 self.stored_messages[f'{msg.msgname}.{msg.mission_type}'].set_result(msg)
             else:
-                self.stored_messages[f'{msg.msgname}'].set_result(msg)
-                common.mavlink_map
-        
+                print(f'Stored {msg.msgname}')
+                try:
+                    self.stored_messages[f'{msg.msgname}'].set_result(msg)
+                except:
+                    pass
+                
+
+    async def watch_for_heartbeat(self):
+        retries = 5
+        while True:
+            if retries == 0:
+                break
+            try:
+                hb = await asyncio.wait_for(self.wait_for_message("HEARTBEAT"), timeout=1.5)
+                print('heartbeat recieved from drone')
+                retries = 5
+            except TimeoutError:
+                print('Failed to recieve heartbeat')
+                retries -= 1
         
     
