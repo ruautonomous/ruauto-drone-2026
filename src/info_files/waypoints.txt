@@ -1,0 +1,10 @@
+meters
+# DO NOT CHANGE THE FIRST LINE TO ANYTHING BUT 'meters' or 'feet' or 'null'
+# set the first line to 'meters' or 'feet' depending on what units of measurement the altitude is given in
+# set to 'null' if there is no mission to upload
+# waypoints for drone to follow (if there are any)
+-35.3628918, 149.1654175, 10 
+-35.3624307, 149.1650085, 10
+-35.3626968, 149.1644055, 10
+-35.3632437, 149.1645017, 10
+-35.3635515, 149.1648355, 10
