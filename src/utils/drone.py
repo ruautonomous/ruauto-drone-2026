@@ -12,6 +12,7 @@ from helper.file_reader import read_config_file
 
 class Drone:
     def __init__(self):
+        self.message_stream = None
         print('initializing drone')
 
 
@@ -60,15 +61,41 @@ class Drone:
             log_system(msg="Sent heartbeat to drone from GCS")
             await asyncio.sleep(1)
 
-    async def send_command(self, command, 
-                           param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 5):
+    async def send_command(self, command: int, param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 5):
+        '''Sends a command using command_long. NOT RECOMMENDED for commands that deal with integer coordinates \n\nUse send_command_int() instead'''
+        print(f"SENDING COMMAND LONG {command}")
         return await self.message_stream.send_command(command=command, param1=param1, param2=param2, param3=param3, param4=param4,
                                                                           param5=param5, param6=param6, param7=param7, timeout=timeout)
+    
+    async def send_command_int(self, command: int, param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 5, frame=common.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT):
+        '''Sends a command using command_int_send. Recommended for when sending commands that require integer positions as parameters. Also recommended that you specify each parameter passed in'''
+        print(f"SENDING COMMAND INT {command}")
+        return await self.message_stream.send_command_int(command=command, param1=param1, param2=param2, param3=param3, param4=param4,
+                                                                          param5=param5, param6=param6, param7=param7, timeout=timeout, frame=frame)
+
+    async def watch_for_heartbeat(self):
+        '''This async function watches for the drones heartbeat and keep track of if more than five consecutive heartbeats have been missed.
+        Once five consecutive heartbeats have been missed, the emergency failsafe should activate'''
+        if not (self.message_stream and self.message_stream.listening):
+            log_system(msgname='Heartbeat Watcher', msg="Message Stream not yet initialized | Awaiting Message Stream activation")    
+            await asyncio.sleep(1)
+        retries = 5
+        while True:
+            if retries == 0:
+                log_system(msg="Drone connection lost...", msgname="Heartbeat Watcher (CRITICAL FAILURE)", color=bcolors.FAIL)
+                break
+            try:
+                hb = await asyncio.wait_for(self.message_stream.wait_for_message("HEARTBEAT"), timeout=1.5)
+                # print('heartbeat recieved from drone')
+                retries = 5
+            except TimeoutError:
+                log_system(msgname="Heartbeat Watcher (URGENT)", msg=f"Too long since last heartbeat recieved. {retries-1} retries until failsafe activation", color=bcolors.HEARTBEAT)
+                retries -= 1
 
     async def start_background_processes(self):
         await asyncio.create_task(self.message_stream.message_stream())
         await asyncio.create_task(self.send_heartbeat())
-        await asyncio.create_task(self.message_stream.watch_for_heartbeat())   
+        # await asyncio.create_task(self.message_stream.watch_for_heartbeat())
         
     # GETTERS
 

@@ -16,7 +16,7 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
     MISSION = '\033[38;5;157m' # for messages starting with MISSION_* (light greenish)
-    SUCCESS = '\033[38;5;82m'
+    SUCCESS = '\033[38;5;82m' # green 
 
 
 async def logger(stream:asyncio.Queue): 

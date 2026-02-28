@@ -14,7 +14,7 @@ async def main():
     print("HELLO")
     # await asyncio.create_task(drone.send_command(command=common.MAV_CMD_DO_SET_SERVO, param1=14, param2=1500))
 
-    await asyncio.gather(drone.start_background_processes(), drone.send_command(command=common.MAV_CMD_DO_SET_SERVO, param1=14, param2=1500))
+    await asyncio.gather(drone.start_background_processes(), drone.watch_for_heartbeat())
 
 if __name__ == "__main__":
     asyncio.run(main())
