@@ -14,6 +14,8 @@ class Drone:
     def __init__(self):
         self.message_stream = None
         print('initializing drone')
+        self.home_position = {
+            'lat': -1, 'long':-1, 'alt': -1, 'set': False}
 
 
     def retrieve_configuration(self, parametersFile = None, configFile = None):
@@ -24,7 +26,7 @@ class Drone:
         self.threshhold = float(params['threshhold']) if parametersFile else 2
         self.threshholdZ = float(params['threshholdZ']) if parametersFile else 1
         self.climbspeed = int(params['climbspeed']) if parametersFile else -2
-        self.airspeed = int(params['airspeed']) if parametersFile else -2
+        self.groundspeed = int(params['groundspeed']) if parametersFile else -2
         self.servo_num = int(params['servo_num']) if parametersFile else -1
         self.square_size = int(params['square_size']) if parametersFile else 1
 
@@ -73,12 +75,17 @@ class Drone:
         return await self.message_stream.send_command_int(command=command, param1=param1, param2=param2, param3=param3, param4=param4,
                                                                           param5=param5, param6=param6, param7=param7, timeout=timeout, frame=frame)
 
+    async def message_stream_exists(self, msg = None, msgname = None):
+        while True:
+            if not (self.message_stream and self.message_stream.listening):
+                if(msg and msgname):
+                    log_system(msgname=msgname, msg=msg)    
+                await asyncio.sleep(0.5)
+
     async def watch_for_heartbeat(self):
         '''This async function watches for the drones heartbeat and keep track of if more than five consecutive heartbeats have been missed.
         Once five consecutive heartbeats have been missed, the emergency failsafe should activate'''
-        if not (self.message_stream and self.message_stream.listening):
-            log_system(msgname='Heartbeat Watcher', msg="Message Stream not yet initialized | Awaiting Message Stream activation")    
-            await asyncio.sleep(1)
+        await self.message_stream_exists(msgname='Heartbeat Watcher', msg="Message Stream not yet initialized | Awaiting Message Stream activation")
         retries = 5
         while True:
             if retries == 0:
@@ -95,15 +102,37 @@ class Drone:
     async def start_background_processes(self):
         await asyncio.create_task(self.message_stream.message_stream())
         await asyncio.create_task(self.send_heartbeat())
-        # await asyncio.create_task(self.message_stream.watch_for_heartbeat())
+        await asyncio.create_task(self.set_home_position())
         
     # GETTERS
 
     def get_connection(self):
         return self.connection
+    def get_message_stream(self):
+        return self.message_stream
+    
+    async def set_home_position(self):
+        await self.message_stream_exists(msgname="Home Position", msg="Message Stream not yet initialized | Awaiting Message Stream activation")
+        pos_msg = await self.get_message_stream().request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
+        home_pos = {}
+        home_pos['lat'] = pos_msg.lat
+        home_pos['long'] = pos_msg.lon
+        home_pos['alt'] = pos_msg.relative_alt / 1000
+        home_pos['set'] = True
+        self.home_position = home_pos
+
+    def get_home_position_int(self):
+        return self.home_position 
+
+    def get_home_position_deg(self):
+        home_pos = self.get_home_position_int()
+        home_pos['lat'] = home_pos['lat']/1e7
+        home_pos['long'] = home_pos['long']/1e7
+        return home_pos
 
 class DroneProperties:
 
     CONNECTION = 'connection'
     BAUD = 'baud'
     MISSION = 'mission'
+    

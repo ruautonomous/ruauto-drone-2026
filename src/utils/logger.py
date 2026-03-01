@@ -47,6 +47,7 @@ def log_custom(msg, important = False):
     print(f'{(bcolors.FAIL + '[IMPORTANT] ') if important else bcolors.YELLOW}{bcolors.UNDERLINE}CUSTOM{bcolors.ENDC} > {msg}')
 
 def log_system(msg, msgname = 'SYSTEM', color = bcolors.YELLOW):
+    '''Preferred function for logging. Can be used to customize the message name, message and color of message using the bcolors class'''
     print(f'{color}{bcolors.BOLD}{msgname}{bcolors.ENDC} > {msg}')
 
 def command_log(msg):
