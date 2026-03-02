@@ -3,6 +3,8 @@ from pymavlink.dialects.v20 import common
 # Purpose: To take in message and print them to console with color
 import asyncio
 
+
+
 class bcolors:
     # https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
     HEADER = '\033[95m'
@@ -29,7 +31,7 @@ async def logger(stream:asyncio.Queue):
 def log_message(msg):
     '''Used to log MAVLINK messages ONLY. DO NOT USE FOR CUSTOM MESSAGES'''
     if msg.msgname == 'HEARTBEAT' and msg.type == 2:
-        print(f'{bcolors.HEARTBEAT + msg.msgname + ' (drone) > ' + bcolors.ENDC} {msg}')
+        print(f'{bcolors.HEARTBEAT + 'Drone -> GCS' + bcolors.ENDC} {msg}')
         return
     elif msg.msgname == 'HEARTBEAT' and msg.type == 6:
         # print(f'{bcolors.HEARTBEAT + msg.msgname + ' (gcs)  > ' + bcolors.ENDC} {msg}')

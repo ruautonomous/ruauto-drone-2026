@@ -33,12 +33,14 @@ class MessageStream:
             msg = self.connection.recv_match(blocking=False)
             if msg:
                 await self.handle_message(msg)
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.1)
 
     async def request_message(self, message_id: int):
         '''Used to request a specific messages'''
         await self.send_command(command= common.MAV_CMD_REQUEST_MESSAGE, param1= message_id)
         target_message = common.mavlink_map.get(message_id).msgname
+        if(target_message == "COMMAND_ACK" or target_message == 'MISSION_ACK'):
+            return await self.wait_for_message(target_message, secondary=f'{message_id}')
         return await self.wait_for_message(target_message)
 
             
@@ -110,14 +112,15 @@ class MessageStream:
         for msg in msgs:
             future = asyncio.get_running_loop().create_future()
             # print(f'msg = {msg}')
-            if self.important_messages.__contains__(msg):
+            # if self.important_messages.__contains__(msg):
                 # print(f'Added {msg.msgname} to important message dict')
-                if msg == 'COMMAND_ACK':
-                    self.stored_messages[f'{msg}.{secondary}'] = future
-                elif msg == 'MISSION_ACK':
-                    self.stored_messages[f'{msg}.{secondary}'] = future
-                else:
-                    self.stored_messages[f'{msg}'] = future
+            if msg == 'COMMAND_ACK':
+                # print(f'adding future {msg}.{secondary}')
+                self.stored_messages[f'{msg}.{secondary}'] = future
+            elif msg == 'MISSION_ACK':
+                self.stored_messages[f'{msg}.{secondary}'] = future
+            else:
+                self.stored_messages[f'{msg}'] = future
 
             await future
             return future.result()
@@ -134,9 +137,16 @@ class MessageStream:
 
         if self.important_messages.__contains__(msg.msgname):
             if msg.msgname == 'COMMAND_ACK':
-                self.stored_messages[f'{msg.msgname}.{msg.command}'].set_result(msg)
+                try:
+                    # print('setting result')
+                    self.stored_messages[f'{msg.msgname}.{msg.command}'].set_result(msg)
+                except KeyError:
+                    pass
             elif msg.msgname == 'MISSION_ACK':
-                self.stored_messages[f'{msg.msgname}.{msg.mission_type}'].set_result(msg)
+                try:
+                    self.stored_messages[f'{msg.msgname}.{msg.mission_type}'].set_result(msg)
+                except KeyError:
+                    pass
             else:
                 # print(f'Stored {msg.msgname}')
                 try:

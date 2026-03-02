@@ -2,7 +2,7 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
 import asyncio
 
-from utils.drone import Drone
+from utils.drone import Drone, DroneProperties
 from utils.logger import log_system, bcolors
 
 from helper.file_reader import read_waypoints
@@ -30,10 +30,11 @@ class Mission:
                 clean_points.append(wp)
         return clean_points
     
-    def get_mission_items(self, waypoints: list = None):
+    async def get_mission_items(self, waypoints: list = None):
         '''Encodes mission items'''
         connection = self.drone.get_connection()
-        home_pos = self.drone.get_home_position_int()
+        # print('setting home pos')
+        home_pos = await self.drone.get_home_position_int()
         
         log_system(msg=f'HOME POS: {home_pos}', msgname="Home Position")
         encoded_commands = []
@@ -52,8 +53,17 @@ class Mission:
             connection.target_system,connection.target_component, self.mission_length-1, common.MAV_FRAME_GLOBAL_TERRAIN_ALT, common.MAV_CMD_NAV_LAND, 0,1,
             0,0,0,0,home_pos['lat'], home_pos['long'], home_pos['alt'], common.MAV_MISSION_TYPE_MISSION))
         
+        self.mission_length = len(encoded_commands)
         return encoded_commands
     
-    async def upload_mission(self, waypoints = None):
+    async def upload_mission(self, waypoints = None, rtl: bool = True):
         self.waypoints = self.mission_setup(waypoints if waypoints else self.waypoints)
-        mission_items = self.get_mission_items(waypoints=self.waypoints)
+        mission_items = await self.get_mission_items(waypoints=self.waypoints)
+        connection = self.drone.get_connection()
+
+        if (not rtl):
+            self.mission_length -= 1
+            mission_items = mission_items.pop(len(mission_items)-1)
+        
+        log_system(msgname=DroneProperties.MISSION_HANDLER, msg=f"Sending mission type MISSION count of {self.mission_length}")
+        connection.mav.mission_count_send(connection.target_system,connection.target_component, self.mission_length, common.MAV_MISSION_TYPE_MISSION)

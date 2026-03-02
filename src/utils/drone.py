@@ -60,7 +60,7 @@ class Drone:
     async def send_heartbeat(self):
         while True:
             self.get_connection().mav.heartbeat_send(common.MAV_TYPE_GCS, common.MAV_AUTOPILOT_INVALID, 0,0,0)
-            log_system(msg="Sent heartbeat to drone from GCS")
+            log_system(msgname=f"{DroneProperties.HEARTBEAT_SEND}", msg="Sent heartbeat to drone from GCS", color=bcolors.HEARTBEAT)
             await asyncio.sleep(1)
 
     async def send_command(self, command: int, param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 5):
@@ -77,10 +77,11 @@ class Drone:
 
     async def message_stream_exists(self, msg = None, msgname = None):
         while True:
-            if not (self.message_stream and self.message_stream.listening):
-                if(msg and msgname):
-                    log_system(msgname=msgname, msg=msg)    
-                await asyncio.sleep(0.5)
+            if (self.message_stream and self.message_stream.listening):
+                return
+            if(msg and msgname):
+                log_system(msgname=msgname, msg=msg)    
+            await asyncio.sleep(0.5)
 
     async def watch_for_heartbeat(self):
         '''This async function watches for the drones heartbeat and keep track of if more than five consecutive heartbeats have been missed.
@@ -100,9 +101,11 @@ class Drone:
                 retries -= 1
 
     async def start_background_processes(self):
-        await asyncio.create_task(self.message_stream.message_stream())
-        await asyncio.create_task(self.send_heartbeat())
-        await asyncio.create_task(self.set_home_position())
+        # asyncio.new_event_loop()
+        asyncio.create_task(self.message_stream.message_stream())
+        asyncio.create_task(self.set_home_position())
+        asyncio.create_task(self.send_heartbeat())
+        
         
     # GETTERS
 
@@ -113,16 +116,17 @@ class Drone:
     
     async def set_home_position(self):
         await self.message_stream_exists(msgname="Home Position", msg="Message Stream not yet initialized | Awaiting Message Stream activation")
+        log_system(msgname="Home Position", msg="Requesting Home Position")
         pos_msg = await self.get_message_stream().request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
-        home_pos = {}
-        home_pos['lat'] = pos_msg.lat
-        home_pos['long'] = pos_msg.lon
-        home_pos['alt'] = pos_msg.relative_alt / 1000
-        home_pos['set'] = True
+        home_pos = {'lat': pos_msg.lat, 'long':pos_msg.lon, 'alt': (pos_msg.relative_alt/1000), 'set': True}
         self.home_position = home_pos
+        log_system(msgname="Home Position", msg="Home Position Set Successfully", color=bcolors.SUCCESS)
 
-    def get_home_position_int(self):
-        return self.home_position 
+    async def get_home_position_int(self):
+        while True:
+            if(self.home_position['set']):
+                return self.home_position 
+            await asyncio.sleep(0.5)
 
     def get_home_position_deg(self):
         home_pos = self.get_home_position_int()
@@ -135,4 +139,8 @@ class DroneProperties:
     CONNECTION = 'connection'
     BAUD = 'baud'
     MISSION = 'mission'
+    MISSION_HANDLER = 'Mission Handler'
+    HEARTBEAT_SEND = 'GCS -> Drone'
+    HEARTBEAT_RECIEVE = 'Drone -> GCS'
+    
     
