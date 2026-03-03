@@ -16,5 +16,6 @@ async def set_mode(drone: Drone, mode: int):
     print(f'Setting mode to {mode}')
 
     await drone.send_command(command=common.MAV_CMD_DO_SET_MODE, param1=common.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, param2=mode)
+    await asyncio.sleep(0.5) # waiting for 0.5 seconds to allow for drone to finish switching modes
     
 

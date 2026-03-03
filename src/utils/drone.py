@@ -23,8 +23,8 @@ class Drone:
         params = read_config_file(parametersFile) if parametersFile else -1
         print(params)
         self.target_alt = int(params['altitude']) if parametersFile else 10
-        self.threshhold = float(params['threshhold']) if parametersFile else 2
-        self.threshholdZ = float(params['threshholdZ']) if parametersFile else 1
+        self.threshhold = float(params['threshhold']) if parametersFile else 0.2
+        self.threshholdZ = float(params['threshholdZ']) if parametersFile else 0.1
         self.climbspeed = int(params['climbspeed']) if parametersFile else -2
         self.groundspeed = int(params['groundspeed']) if parametersFile else -2
         self.servo_num = int(params['servo_num']) if parametersFile else -1

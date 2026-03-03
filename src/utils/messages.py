@@ -32,7 +32,11 @@ class MessageStream:
         while True:
             msg = self.connection.recv_match(blocking=False)
             if msg:
-                await self.handle_message(msg)
+                log_message(msg)
+                try:
+                    asyncio.create_task(self.handle_message(msg))
+                except TimeoutError:
+                    pass
             await asyncio.sleep(0.1)
 
     async def request_message(self, message_id: int):
@@ -46,17 +50,18 @@ class MessageStream:
 
             
     async def send_command(self, command, 
-                           param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 5):
+                           param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 3):
         '''Sends a command using command_long. NOT RECOMMENDED for commands that deal with integer coordinates \n\nUse send_command_int() instead'''
         self.connection.mav.command_long_send(self.connection.target_system, self.connection.target_component, command, 0, 
                                          param1,param2,param3,param4,param5,param6,param7)
-        print(f"SENT COMMAND {command}")
+        # print(f"SENT COMMAND {command}")
         # ack =  await self.wait_for_message(f'COMMAND_ACK.{command}')
         try:
             ack = await asyncio.wait_for(self.wait_for_message(f'COMMAND_ACK', secondary=command), timeout=timeout)
-            log_custom(f'recieved command ack code: {command}')
+            # log_custom(f'recieved command ack code: {command}')
         except TimeoutError:
             log_system(color=bcolors.FAIL, msg=f"FAILED TO RECIEVE COMMAND_ACK ({command})")
+            await self.send_command(command,param1,param2,param3,param4,param5,param6,param7)
             return
 
         if(ack.result != 0):
@@ -69,7 +74,7 @@ class MessageStream:
         '''Sends a command using command_int_send. Recommended for when sending commands that require integer positions as parameters. Also recommended that you specify each parameter passed in'''
         self.connection.mav.command_int_send(self.connection.target_system, self.connection.target_component, frame, command, 0, 0, 
                                          param1,param2,param3,param4,x,y,z)
-        print(f"SENT COMMAND {command}")
+        # print(f"SENT COMMAND {command}")
         # ack =  await self.wait_for_message(f'COMMAND_ACK.{command}')
         try:
             ack = await asyncio.wait_for(self.wait_for_message(f'COMMAND_ACK', secondary=command), timeout=timeout)
@@ -109,7 +114,7 @@ class MessageStream:
 
     # This class given msg or an array of messages, can wait for a specific message to arrive. It creates an asyncio future, and adds it to the
     # stored_messages dictionary, and once the result of the future is set by the message handler in handle_message(), it returns the message
-    async def wait_for_message(self, *msgs, secondary = '1'):  
+    async def wait_for_message(self, *msgs, secondary = None):  
         for msg in msgs:
             future = asyncio.get_running_loop().create_future()
             # print(f'msg = {msg}')
@@ -120,6 +125,8 @@ class MessageStream:
                 self.stored_messages[f'{msg}.{secondary}'] = future
             elif msg == 'MISSION_ACK':
                 self.stored_messages[f'{msg}.{secondary}'] = future
+            # elif secondary is not None:
+            #     self.stored_messages[f'{msg}.{secondary}'] = future
             else:
                 self.stored_messages[f'{msg}'] = future
 
@@ -134,25 +141,43 @@ class MessageStream:
 
     async def handle_message(self, msg):
         # await self.stream.put(msg)
-        log_message(msg)
 
         if self.important_messages.__contains__(msg.msgname):
             if msg.msgname == 'COMMAND_ACK':
                 try:
                     # print('setting result')
-                    self.stored_messages[f'{msg.msgname}.{msg.command}'].set_result(msg)
+                    if self.stored_messages.keys().__contains__(f'{msg.msgname}.{msg.command}'):
+                        if not self.stored_messages[f'{msg.msgname}.{msg.command}'].done():
+                            self.stored_messages[f'{msg.msgname}.{msg.command}'].set_result(msg)
+                    else:
+                        await asyncio.sleep(1)
+                        await self.handle_message(msg=msg)
                 except KeyError:
+                    print("Key Error")
                     pass
             elif msg.msgname == 'MISSION_ACK':
                 try:
-                    self.stored_messages[f'{msg.msgname}.{msg.mission_type}'].set_result(msg)
+                    if self.stored_messages.keys().__contains__(f'{msg.msgname}.{msg.mission_type}'):
+                        # print(f'GLOOB {self.stored_messages[f'{msg.msgname}.{msg.mission_type}']}')
+                        if not self.stored_messages[f'{msg.msgname}.{msg.mission_type}'].done():
+                            self.stored_messages[f'{msg.msgname}.{msg.mission_type}'].set_result(msg)
+                    else:
+                        await asyncio.sleep(1)
+                        await self.handle_message(msg=msg)
                 except KeyError:
+                    print("Key Error")
                     pass
             else:
                 # print(f'Stored {msg.msgname}')
                 try:
-                    self.stored_messages[f'{msg.msgname}'].set_result(msg)
-                except:
+                    if self.stored_messages.keys().__contains__(f'{msg.msgname}'):
+                        if not self.stored_messages[f'{msg.msgname}'].done():
+                            self.stored_messages[f'{msg.msgname}'].set_result(msg)
+                    else:
+                        await asyncio.sleep(1)
+                        await self.handle_message(msg=msg)
+                except KeyError:
+                    print("Key Error")
                     pass
                 
 

@@ -6,6 +6,7 @@ from utils.drone import Drone
 from utils.logger import log_system, log_fail
 import utils.mode as mode
 from utils.armdisarm import arm_drone, disarm_drone
+from utils.takeoff import takeoff, return_to_launch
 async def reposition_drone_deg(drone: Drone, coordinates: list = None):
     await drone.message_stream_exists()
 
@@ -23,6 +24,9 @@ async def reposition_drone_deg(drone: Drone, coordinates: list = None):
     await arm_drone(drone=drone)
     await mode.set_mode(drone, mode.GUIDED)
     
+    await takeoff(drone=drone, target_alt=alt)
+    
+
     # print('sending pos target globa int')
     drone.get_connection().mav.set_position_target_global_int_send(
         0,                                          # time boot (ms)

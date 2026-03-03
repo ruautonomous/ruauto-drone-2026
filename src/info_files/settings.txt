@@ -1,8 +1,8 @@
 # this file contains parameters for the drone 
 altitude=5
 threshhold=1
-threshholdZ=0.1
-# threshholdZ is the maximum permissible error in the Z axis (altitude)
+threshholdZ=0.3
+# threshholdZ is the maximum permissible error in the Z axis (altitude). 0.3 represents 3% permissible error
 groundspeed=10
 climbspeed=-2
 servo_num=14

@@ -3,10 +3,12 @@ from pymavlink.dialects.v20 import common
 import asyncio
 
 from utils.drone import Drone, DroneProperties
-from utils.logger import log_system, bcolors
+from utils.logger import log_system, bcolors, log_success
 
 from helper.file_reader import read_waypoints
 import utils.mode as mode
+from utils.armdisarm import arm_drone
+from utils.takeoff import takeoff, return_to_launch
 
 class Mission:
     def __init__(self, drone: Drone, waypointsFile = 'info_files/waypoints.txt'):
@@ -36,24 +38,29 @@ class Mission:
         connection = self.drone.get_connection()
         # print('setting home pos')
         home_pos = await self.drone.get_home_position_int()
-        
+        i = 0
         log_system(msg=f'HOME POS: {home_pos}', msgname="Home Position")
         encoded_commands = []
         encoded_commands.append(connection.mav.mission_item_int_encode(
-            connection.target_system, connection.target_component, 0, common.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT, common.MAV_CMD_NAV_TAKEOFF, 1, 1,
+            connection.target_system, connection.target_component, i, common.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT, common.MAV_CMD_NAV_TAKEOFF, 1, 1,
             0,0,0,0,(int)(home_pos['lat']),(int)(home_pos['long']),self.drone.target_alt, common.MAV_MISSION_TYPE_MISSION
         ))
-        for i,wp in enumerate(waypoints,start=1):
+
+        i += 1
+
+        for wp in waypoints:
             print(f'WAYPOINT: {wp}')
             encoded_commands.append(connection.mav.mission_item_int_encode(
                 connection.target_system,connection.target_component, i, common.MAV_FRAME_GLOBAL_RELATIVE_ALT, common.MAV_CMD_NAV_WAYPOINT, 0, 1,
                 0,0,0,0,wp[0],wp[1],wp[2], common.MAV_MISSION_TYPE_MISSION
             ))
+            i+=1
 
-        encoded_commands.append(connection.mav.mission_item_int_encode(
-            connection.target_system,connection.target_component, len(waypoints)+1, common.MAV_FRAME_GLOBAL_TERRAIN_ALT, common.MAV_CMD_NAV_LAND, 0,1,
-            0,0,0,0,home_pos['lat'], home_pos['long'], home_pos['alt'], common.MAV_MISSION_TYPE_MISSION))
+        # encoded_commands.append(connection.mav.mission_item_int_encode(
+        #     connection.target_system,connection.target_component, i, common.MAV_FRAME_GLOBAL_TERRAIN_ALT, common.MAV_CMD_NAV_LAND, 0,1,
+        #     0,0,0,0,home_pos['lat'], home_pos['long'], home_pos['alt'], common.MAV_MISSION_TYPE_MISSION))
         
+        # i+=1
         self.mission_length = len(encoded_commands)
         return encoded_commands
     
@@ -73,7 +80,7 @@ class Mission:
         connection.mav.mission_count_send(connection.target_system,connection.target_component, self.mission_length, common.MAV_MISSION_TYPE_MISSION)
 
 
-        for i in range(self.mission_length+1):
+        for i in range(self.mission_length):
             request = await self.drone.get_message_stream().wait_for_message('MISSION_REQUEST','MISSION_REQUEST_INT')
             log_system(msg=f"Sending mission index {i}", msgname=DroneProperties.MISSION_HANDLER, color=bcolors.MISSION)
             connection.mav.send(mission_items.pop(0))
@@ -83,5 +90,18 @@ class Mission:
 
         
         if(begin_immediately):
-            mode.set_mode(self.drone, mode.AUTO)
+            await arm_drone(drone=self.drone)
+            await mode.set_mode(self.drone, mode.GUIDED)
+            await takeoff(self.drone, self.drone.target_alt)
+            await mode.set_mode(self.drone, mode.AUTO)
+            await self.wait_for_mission_completion()
+            await return_to_launch(self.drone)
+            
 
+    async def wait_for_mission_completion(self):
+        for i in range(self.mission_length-1):
+            # print('WAITING AGAIN')
+            await self.drone.get_message_stream().wait_for_message('MISSION_ITEM_REACHED')
+            await asyncio.sleep(1)
+        log_success(msgname=DroneProperties.MISSION_HANDLER, msg="Mission Completed Successfully")
+        pass

@@ -12,14 +12,14 @@ async def main():
     drone.initialize_drone(parametersFile='info_files/settings.txt', configFile='info_files/config.txt')
     mission = Mission(drone=drone)
     
-    coord = [-35.3628918, 149.1654175, 10]
+    # coord = [-35.3628918, 149.1654175, 10]
     
 
     await asyncio.gather(
         drone.start_background_processes(), 
         drone.watch_for_heartbeat(),
-        # mission.upload_mission()
-        takeoff(drone=drone)
+        mission.upload_mission(begin_immediately=True)
+        # takeoff(drone=drone)
         # reposition_drone_deg(drone, coord)
         )
 
