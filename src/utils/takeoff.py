@@ -7,6 +7,8 @@ import utils.mode as mode
 from utils.logger import log_system, log_success
 
 async def takeoff(drone: Drone, target_alt = None, lat = None, long = None):
+    '''Conducts drone takeoff to target altitude, latitude and longitude specified. If lat/long not specified, it uses the current position of the drone. 
+    If target alt not specified, it uses the default target_alt of the drone specified in the drone class/settings file'''
     if not target_alt:
         target_alt = drone.target_alt
     if not (lat and long):
@@ -20,6 +22,7 @@ async def takeoff(drone: Drone, target_alt = None, lat = None, long = None):
     await wait_for_altitude_increase(drone, target_alt, msgname="Takeoff Handler")
 
 async def return_to_launch(drone: Drone):
+    '''Sets drone mode to RTL, making the drone return to its home position'''
     await mode.set_mode(drone=drone, mode=mode.RTL)
     home_pos = await drone.get_home_position_deg()
     await wait_for_altitude_decrease(drone, home_pos['alt'], msgname="RTL Handler")

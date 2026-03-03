@@ -95,7 +95,8 @@ class Mission:
             await takeoff(self.drone, self.drone.target_alt)
             await mode.set_mode(self.drone, mode.AUTO)
             await self.wait_for_mission_completion()
-            await return_to_launch(self.drone)
+            if rtl:
+                await return_to_launch(self.drone)
             
 
     async def wait_for_mission_completion(self):
