@@ -83,6 +83,7 @@ class Drone:
                 log_system(msgname=msgname, msg=msg)    
             await asyncio.sleep(0.5)
 
+    # TO DO: Create failsafe + activate failsafe
     async def watch_for_heartbeat(self):
         '''This async function watches for the drones heartbeat and keep track of if more than five consecutive heartbeats have been missed.
         Once five consecutive heartbeats have been missed, the emergency failsafe should activate'''
@@ -93,12 +94,17 @@ class Drone:
                 log_system(msg="Drone connection lost...", msgname="Heartbeat Watcher (CRITICAL FAILURE)", color=bcolors.FAIL)
                 break
             try:
-                hb = await asyncio.wait_for(self.message_stream.wait_for_message("HEARTBEAT"), timeout=1.5)
+                hb = await asyncio.wait_for(self.message_stream.wait_for_message("HEARTBEAT"), timeout=1.1)
                 # print('heartbeat recieved from drone')
                 retries = 5
             except TimeoutError:
                 log_system(msgname="Heartbeat Watcher (URGENT)", msg=f"Too long since last heartbeat recieved. {retries-1} retries until failsafe activation", color=bcolors.HEARTBEAT)
                 retries -= 1
+        i = 1
+        while True:
+            log_system(msg=f"Heartbeats missed: {i}", msgname="Heartbeat Watcher (CRITICAL FAILURE)", color=bcolors.FAIL)
+            i += 1
+            await asyncio.sleep(1)
 
     async def start_background_processes(self):
         # asyncio.new_event_loop()
@@ -128,11 +134,17 @@ class Drone:
                 return self.home_position 
             await asyncio.sleep(0.5)
 
-    def get_home_position_deg(self):
-        home_pos = self.get_home_position_int()
+    async def get_home_position_deg(self):
+        home_pos = await self.get_home_position_int()
         home_pos['lat'] = home_pos['lat']/1e7
         home_pos['long'] = home_pos['long']/1e7
         return home_pos
+
+    async def get_position_deg(self):
+        current_pos = await self.get_message_stream().request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
+        return {"lat": current_pos.lat, "long": current_pos.lon, "alt": (current_pos.relative_alt/1000)}
+
+
 
 class DroneProperties:
 

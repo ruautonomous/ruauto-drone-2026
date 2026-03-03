@@ -39,6 +39,7 @@ class MessageStream:
         '''Used to request a specific messages'''
         await self.send_command(command= common.MAV_CMD_REQUEST_MESSAGE, param1= message_id)
         target_message = common.mavlink_map.get(message_id).msgname
+        print(f'waiting for message {target_message}')
         if(target_message == "COMMAND_ACK" or target_message == 'MISSION_ACK'):
             return await self.wait_for_message(target_message, secondary=f'{message_id}')
         return await self.wait_for_message(target_message)

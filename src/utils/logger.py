@@ -1,9 +1,6 @@
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
-# Purpose: To take in message and print them to console with color
 import asyncio
-
-
 
 class bcolors:
     # https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
@@ -75,7 +72,10 @@ def mission_log(msg):
     else:
         print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} > {msg}')
 
-def log_success(msg):
+def log_success(msg, msgname="SUCCESS"):
     '''Used to log a successful action'''
-    print(f'{bcolors.SUCCESS}{bcolors.UNDERLINE}SUCCESS!{bcolors.ENDC} > {msg}')
+    log_system(msg=msg, msgname=msgname, color=bcolors.SUCCESS)
 
+def log_fail(msg, msgname="FAILED"):
+    '''Used to log a failed action'''
+    log_system(msg=msg, msgname=msgname, color=bcolors.FAIL)
