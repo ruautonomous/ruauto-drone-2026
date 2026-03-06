@@ -5,7 +5,7 @@ from utils.drone import Drone
 from utils.armdisarm import arm_drone
 from utils.logger import log_system, bcolors
 
-async def test_all_motors(drone: Drone):
+async def test_all_motors(drone: Drone, throttle_value: int = 5):
     
     log_system(msgname="MOTOR TEST INITIATING", msg="Motor test beginning in 3 seconds. Make sure all props have been removed. " \
     "Kill this program if not.", color=f'{bcolors.BOLD}{bcolors.UNDERLINE}{bcolors.OKCYAN}')
@@ -17,8 +17,7 @@ async def test_all_motors(drone: Drone):
     await arm_drone(drone=drone)
     
     motor1, motor2, motor3, motor4 = [1,2,3,4]
-    throttle_type = common.MOTOR_TEST_THROTTLE_PWM
-    throttle_value = 5
+    throttle_type = common.MOTOR_TEST_THROTTLE_PERCENT
     timeout = 0
     motor_count = 4
     test_order = common.MOTOR_TEST_ORDER_DEFAULT
@@ -30,3 +29,8 @@ async def test_all_motors(drone: Drone):
                              param5=motor_count,
                              param6=test_order,
                              param7=0)
+    
+async def test_all_motors_multiple(drone: Drone, num_times: int = 1, throttle_value:int = 5, throttle_step: int = 0):
+    for i in range(num_times):
+        log_system(msg=f"Testing Motors | Iteration {i+1} | Throttle Value {throttle_value+i*throttle_step}%")
+        await test_all_motors(drone=drone, throttle_value=(throttle_value+i*throttle_step))

@@ -123,7 +123,7 @@ class MessageStream:
             if msg == 'COMMAND_ACK':
                 # print(f'adding future {msg}.{secondary}')
                 self.stored_messages[f'{msg}.{secondary}'] = future
-            elif msg == 'MISSION_ACK':
+            elif msg == 'MISSION_ACK' or msg == 'MISSION_REQUEST' or msg == 'MISSION_REQUEST_INT':
                 self.stored_messages[f'{msg}.{secondary}'] = future
             # elif secondary is not None:
             #     self.stored_messages[f'{msg}.{secondary}'] = future
@@ -155,7 +155,7 @@ class MessageStream:
                 except KeyError:
                     print("Key Error")
                     pass
-            elif msg.msgname == 'MISSION_ACK':
+            elif msg.msgname == 'MISSION_ACK'or msg.msgname == 'MISSION_REQUEST' or msg.msgname == 'MISSION_REQUEST_INT':
                 try:
                     if self.stored_messages.keys().__contains__(f'{msg.msgname}.{msg.mission_type}'):
                         # print(f'GLOOB {self.stored_messages[f'{msg.msgname}.{msg.mission_type}']}')

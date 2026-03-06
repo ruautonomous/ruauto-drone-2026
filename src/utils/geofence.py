@@ -43,7 +43,7 @@ class Geofence:
         log_custom(f'Sending fence length of {len(points)} | Waiting for mission request')
         print(points)
         for i, point in enumerate(points, start=0):
-            await self.drone.get_message_stream().wait_for_message('MISSION_REQUEST', 'MISSION_REQUEST_INT')
+            await self.drone.get_message_stream().wait_for_message('MISSION_REQUEST', 'MISSION_REQUEST_INT', secondary=common.MAV_MISSION_TYPE_FENCE)
             connection.mav.mission_item_int_send(connection.target_system, connection.target_component, i,
                                                  common.MAV_FRAME_GLOBAL_INT,
                                                  common.MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION,

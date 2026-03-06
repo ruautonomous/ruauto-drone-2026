@@ -81,7 +81,7 @@ class Mission:
 
 
         for i in range(self.mission_length):
-            request = await self.drone.get_message_stream().wait_for_message('MISSION_REQUEST','MISSION_REQUEST_INT')
+            request = await self.drone.get_message_stream().wait_for_message('MISSION_REQUEST','MISSION_REQUEST_INT', secondary=common.MAV_MISSION_TYPE_MISSION)
             log_system(msg=f"Sending mission index {i}", msgname=DroneProperties.MISSION_HANDLER, color=bcolors.MISSION)
             connection.mav.send(mission_items.pop(0))
         
