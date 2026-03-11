@@ -11,7 +11,7 @@ from utils.geofence import Geofence
 async def main():
     drone = Drone()
     drone.initialize_drone(parametersFile='info_files/settings.txt', configFile='info_files/config.txt')
-    mission = Mission(drone=drone)
+    mission = Mission(drone=drone, waypointsFile='info_files/waypoints.txt')
     fence = Geofence(drone=drone, geofenceFile='info_files/testingfence.txt')
     # coord = [-35.3628918, 149.1654175, 10]
     

@@ -71,10 +71,6 @@ class Mission:
         self.waypoints = self.mission_setup(waypoints if waypoints else self.waypoints)
         mission_items = await self.get_mission_items(waypoints=self.waypoints)
         connection = self.drone.get_connection()
-
-        if (not rtl):
-            self.mission_length -= 1
-            mission_items = mission_items.pop(len(mission_items)-1)
         
         log_system(msgname=DroneProperties.MISSION_HANDLER, msg=f"Sending mission type MISSION count of {self.mission_length}")
         connection.mav.mission_count_send(connection.target_system,connection.target_component, self.mission_length, common.MAV_MISSION_TYPE_MISSION)
