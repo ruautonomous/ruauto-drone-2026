@@ -32,6 +32,7 @@ class Drone:
 
         if(configFile):
             self.config = read_config_file(configFile)
+            print(self.config)
 
     def connect_drone(self,connection_string = 'tcp:127.0.0.1:5763', port = False):
         '''This method is used to connect to the drone given the connection string'''
@@ -114,7 +115,8 @@ class Drone:
         
         
     # GETTERS
-
+    def get_configuration(self):
+        return self.config
     def get_connection(self):
         return self.connection
     def get_message_stream(self):

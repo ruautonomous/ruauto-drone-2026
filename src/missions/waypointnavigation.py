@@ -58,6 +58,6 @@ class   WaypointNavigation:
         print(f'\nSORTED POINTS: {sorted_points}')
         
 
-
+    
 
 
