@@ -154,5 +154,6 @@ class DroneProperties:
     MISSION_HANDLER = 'Mission Handler'
     HEARTBEAT_SEND = 'GCS -> Drone'
     HEARTBEAT_RECIEVE = 'Drone -> GCS'
+    SPEED_HANDLER = "Speed Handler"
     
     

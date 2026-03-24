@@ -7,6 +7,7 @@ from utils.mission import Mission
 from utils.reposition import reposition_drone_deg
 from utils.takeoff import takeoff
 from utils.geofence import Geofence
+from missions.waypointnavigation import WaypointNavigation
 
 async def main():
     drone = Drone()
@@ -15,14 +16,14 @@ async def main():
     fence = Geofence(drone=drone, geofenceFile='info_files/testingfence.txt')
     # coord = [-35.3628918, 149.1654175, 10]
     
+    waypointNav = WaypointNavigation(drone, 'info_files/test_files/test_waypoint_nav.txt')
 
     await asyncio.gather(
         drone.start_background_processes(), 
         drone.watch_for_heartbeat(),
-        fence.upload_fence(),
-        mission.upload_mission(begin_immediately=True)
-        # takeoff(drone=drone)
-        # reposition_drone_deg(drone, coord)
+        # fence.upload_fence(),
+        waypointNav.upload_mission()
+        # mission.upload_mission(begin_immediately=True)
         )
 
 if __name__ == "__main__":

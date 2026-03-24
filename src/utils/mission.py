@@ -64,7 +64,7 @@ class Mission:
         self.mission_length = len(encoded_commands)
         return encoded_commands
     
-    async def upload_mission(self, waypoints = None, rtl: bool = True, begin_immediately = False):
+    async def upload_mission(self, waypoints: list = None, rtl: bool = True, begin_immediately = False):
         '''Uploads the mission to the drone after getting encoded mission items from get_mission_items(). The rtl boolean determines whether the land command
         is issued after all waypoints are uploaded. \nThis function first sends the number of mission items that are being sent, and waits for a MISSION_REQUEST message.
         Once recieved, it sends each encoded mission item, every time a MISSION_REQUEST is recieved. After all mission items sent, function waits for a MISSION_ACK'''
@@ -102,3 +102,12 @@ class Mission:
             await asyncio.sleep(1)
         log_success(msgname=DroneProperties.MISSION_HANDLER, msg="Mission Completed Successfully")
         pass
+
+    async def begin_mission(self, rtl = True):
+        await arm_drone(drone=self.drone)
+        await mode.set_mode(self.drone, mode.GUIDED)
+        await takeoff(self.drone, self.drone.target_alt)
+        await mode.set_mode(self.drone, mode.AUTO)
+        await self.wait_for_mission_completion()
+        if rtl:
+            await return_to_launch(self.drone)

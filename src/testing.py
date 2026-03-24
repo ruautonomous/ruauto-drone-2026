@@ -9,14 +9,19 @@ from utils.takeoff import takeoff
 from utils.geofence import Geofence
 import helper.motor_test as motor_test
 
+from missions.waypointnavigation import WaypointNavigation
+
 async def main():
     drone = Drone()
     drone.initialize_drone(parametersFile='info_files/settings.txt', configFile='info_files/config.txt')
     
+
+
     await asyncio.gather(
         drone.start_background_processes(), 
         drone.watch_for_heartbeat(),
-        motor_test.test_all_motors(drone=drone)
+
+        # motor_test.test_all_motors(drone=drone)
         )
 
 if __name__ == "__main__":
