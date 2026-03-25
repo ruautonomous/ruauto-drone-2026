@@ -48,6 +48,7 @@ async def mission_picker(drone: Drone):
     
     print(f'MISSIONS = {missions}')
     mission_list = {
+        0:"NO MISSION",
         1:"WAYPOINT NAVIGATION",
         2:"CIRCUIT TIME TRIAL",
         3:"TARGET LOCALIZATION",
@@ -65,6 +66,8 @@ async def mission_picker(drone: Drone):
         read_file = mission_files[f'{current_mission}']
         
         match(current_mission):
+            case 0:
+                pass
             case 1:
                 waypointNav = WaypointNavigation(drone, read_file)
                 await waypointNav.upload_mission()

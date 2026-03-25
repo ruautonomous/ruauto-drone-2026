@@ -25,8 +25,9 @@ class Drone:
         self.target_alt = int(params['altitude']) if parametersFile else 10
         self.threshhold = float(params['threshhold']) if parametersFile else 0.2
         self.threshholdZ = float(params['threshholdZ']) if parametersFile else 0.1
-        self.climbspeed = int(params['climbspeed']) if parametersFile else -2
-        self.groundspeed = int(params['groundspeed']) if parametersFile else -2
+        self.climbspeed = int(params['climbspeed']) if parametersFile else -1
+        self.groundspeed = int(params['groundspeed']) if parametersFile else -1
+        self.airspeed = int(params['airspeed']) if parametersFile else -1
         self.servo_num = int(params['servo_num']) if parametersFile else -1
         self.square_size = int(params['square_size']) if parametersFile else 1
 

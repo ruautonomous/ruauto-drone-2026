@@ -5,7 +5,7 @@ from utils.drone import Drone
 from utils.armdisarm import arm_drone
 from utils.logger import log_system, bcolors
 
-async def test_all_motors(drone: Drone, throttle_value: int = 5):
+async def test_all_motors(drone: Drone, throttle_value: int = 10):
     
     log_system(msgname="MOTOR TEST INITIATING", msg="Motor test beginning in 3 seconds. Make sure all props have been removed. " \
     "Kill this program if not.", color=f'{bcolors.BOLD}{bcolors.UNDERLINE}{bcolors.OKCYAN}')
@@ -18,7 +18,7 @@ async def test_all_motors(drone: Drone, throttle_value: int = 5):
     
     motor1, motor2, motor3, motor4 = [1,2,3,4]
     throttle_type = common.MOTOR_TEST_THROTTLE_PERCENT
-    timeout = 0
+    timeout = 1
     motor_count = 4
     test_order = common.MOTOR_TEST_ORDER_DEFAULT
     await drone.send_command(command=common.MAV_CMD_DO_MOTOR_TEST, 
@@ -29,6 +29,7 @@ async def test_all_motors(drone: Drone, throttle_value: int = 5):
                              param5=motor_count,
                              param6=test_order,
                              param7=0)
+    await asyncio.sleep(timeout*motor_count+1)
     
 async def test_all_motors_multiple(drone: Drone, num_times: int = 1, throttle_value:int = 5, throttle_step: int = 0):
     for i in range(num_times):

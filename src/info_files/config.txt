@@ -1,7 +1,7 @@
 connection=tcp:127.0.0.1:5763
-#connection=/dev/serial0
+#connection=/dev/ttyTHS1
 baud=115200
-mission=1,2,3
+mission=0
 # comments shouldnt get read
 # mission numbers
 # 1 - waypoint nav task
