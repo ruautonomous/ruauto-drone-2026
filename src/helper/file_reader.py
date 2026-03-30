@@ -16,15 +16,14 @@ def read_config_file(file = 'info_files/config.txt'):
 
 def read_waypoints(file = 'info_files/waypoints.txt'):
     waypoints = []
+    feet = False
     with open(file) as f:
-        alt_units = f.readline().removesuffix('\n')
-        feet = alt_units == 'feet'
-        if(alt_units == 'null'):
-            return
         while True:
             read = f.readline()
             if(read == ''):
                 break
+            if(read == 'feet'):
+                feet = True
             if(read.__contains__('#')):
                 continue
             read = read.removesuffix('\n').split(',')

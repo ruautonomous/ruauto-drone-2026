@@ -32,6 +32,7 @@ async def main():
         # fence.upload_fence(),
         # mission.upload_mission(begin_immediately=True)
         )
+    )
 
 if __name__ == "__main__":
     asyncio.run(main())
