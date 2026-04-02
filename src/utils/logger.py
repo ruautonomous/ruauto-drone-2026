@@ -28,7 +28,7 @@ async def logger(stream:asyncio.Queue):
 def log_message(msg):
     '''Used to log MAVLINK messages ONLY. DO NOT USE FOR CUSTOM MESSAGES'''
     if msg.msgname == 'HEARTBEAT' and msg.type == 2:
-        print(f'{bcolors.HEARTBEAT + 'Drone -> GCS' + bcolors.ENDC} {msg}')
+        print(f'{bcolors.HEARTBEAT + "Drone -> GCS" + bcolors.ENDC} {msg}')
         return
     elif msg.msgname == 'HEARTBEAT' and msg.type == 6:
         # print(f'{bcolors.HEARTBEAT + msg.msgname + ' (gcs)  > ' + bcolors.ENDC} {msg}')
@@ -43,7 +43,7 @@ def log_message(msg):
 def log_custom(msg, important = False):
     '''Legacy function, recommended to use log_system instead
         \nLogs a custom message (shows up as yellow), but if the important parameter is set to True, message color is red.'''
-    print(f'{(bcolors.FAIL + '[IMPORTANT] ') if important else bcolors.YELLOW}{bcolors.UNDERLINE}CUSTOM{bcolors.ENDC} > {msg}')
+    print(f'{(bcolors.FAIL + "[IMPORTANT] ") if important else bcolors.YELLOW}{bcolors.UNDERLINE}CUSTOM{bcolors.ENDC} > {msg}')
 
 def log_system(msg, msgname = 'SYSTEM', color = bcolors.YELLOW):
     '''Preferred function for logging. Can be used to customize the message name, message and color of message using the bcolors class'''
@@ -54,10 +54,10 @@ def command_log(msg):
     print_str = (f'{bcolors.COMMAND + msg.msgname + bcolors.ENDC} ({bcolors.OKCYAN}{msg.command}{bcolors.ENDC}) - ')
     match msg.result:
         case common.MAV_RESULT_ACCEPTED:
-            print_str = print_str + f'{bcolors.OKGREEN}{'ACCEPTED'}{bcolors.ENDC}'
+            print_str = print_str + f'{bcolors.OKGREEN}{"ACCEPTED"}{bcolors.ENDC}'
             pass
         case common.MAV_RESULT_DENIED:
-            print_str = print_str + f'{bcolors.FAIL}{'DENIED'}{bcolors.ENDC}'
+            print_str = print_str + f'{bcolors.FAIL}{"DENIED"}{bcolors.ENDC}'
             pass
         case _:
             print_str = print_str + f'{bcolors.YELLOW}{msg.result }{bcolors.ENDC}'
@@ -68,7 +68,7 @@ def command_log(msg):
 def mission_log(msg):
     '''Used to log a mission_ack message and is clear if the mission has been uploaded or not'''
     if msg.msgname == 'MISSION_ACK':
-        print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} - {(bcolors.OKGREEN + 'UPLOADED') if msg.type == 0 else (bcolors.FAIL + 'NOT UPLOADED')}{bcolors.ENDC} > {msg}')
+        print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} - {(bcolors.OKGREEN + "UPLOADED") if msg.type == 0 else (bcolors.FAIL + "NOT UPLOADED")}{bcolors.ENDC} > {msg}')
     else:
         print(f'{bcolors.MISSION}{msg.msgname}{bcolors.ENDC} > {msg}')
 

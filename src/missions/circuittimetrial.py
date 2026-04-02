@@ -1,19 +1,28 @@
 import asyncio
-from pymavlink import mavutil
-from pymavlink.dialects.v20 import common
-
-from utils.drone import Drone, DroneProperties
-import utils.mode as mode
+from utils.drone import Drone
+from utils.takeoff import takeoff
 from utils.mission import Mission
-from utils.armdisarm import arm_drone
+from pymavlink.dialects.v20 import common
+import time
+from utils.logger import log_system, bcolors
 
-from helper.file_reader import read_waypoints
+'''
+Within the region defined by the flight boundaries, there will be as many as 7 circuit waypoints defined.
+• Circuit waypoints will be provided on the day of competition to teams in an ordered list of
+latitude, longitude, and altitude (in meters) of each circuit waypoint.
+• The UAS shall fly a path between the waypoints in order.
+• The UAS shall be allowed a maximum of three full circuits to set a time.
+• The UAS shall pass within 2 meters of each waypoint, as determined by the Judge-provided data
+logger, or the timing for that lap will be invalidated.
+• The fastest of the valid laps will be used for final scoring
+'''
+
 
 class CircuitTimeTrial:
-    def __init__(self, drone: Drone, waypointsFile: str = None):
+    def __init__(self, drone: Drone, points: list):
         self.drone = drone
-        self.custom_points = read_waypoints(waypointsFile) if waypointsFile else None
-        self.mission_handler = Mission(waypointsFile=waypointsFile)
+        self.points = points
+        self.takeoff = takeoff(drone)
         pass
 
     async def begin_mission(self):
