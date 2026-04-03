@@ -18,13 +18,11 @@ async def main():
     drone.initialize_drone(parametersFile='info_files/settings.txt', configFile='info_files/config.txt')
     # mission = Mission(drone=drone, waypointsFile='info_files/waypoints.txt')
     fence = Geofence(drone=drone, geofenceFile='info_files/test_files/testingfence.txt')
-   
-    waypointNav = WaypointNavigation(drone, 'info_files/test_files/test_waypoint_nav.txt')
     
     await asyncio.gather(
         drone.start_background_processes(), 
         drone.watch_for_heartbeat(),
-        # fence.upload_fence(),
+        fence.upload_fence(),
         mission_picker(drone)
         )
 

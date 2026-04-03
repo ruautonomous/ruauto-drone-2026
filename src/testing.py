@@ -8,6 +8,7 @@ from utils.reposition import reposition_drone_deg
 from utils.takeoff import takeoff
 from utils.geofence import Geofence
 import helper.motor_test as motor_test
+from helper.file_reader import read_file
 
 from missions.waypointnavigation import WaypointNavigation
 from missions.targetlocalization import TargetLocalization
@@ -34,5 +35,9 @@ async def main():
         )
     )
 
+def file_test():
+    read_file("info_files/test_files/file_read_test.txt")
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    # asyncio.run(main())
+    file_test()

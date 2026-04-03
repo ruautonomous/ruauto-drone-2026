@@ -6,7 +6,8 @@ from utils.drone import Drone
 from utils.logger import log_system, log_fail
 import utils.mode as mode
 from utils.armdisarm import arm_drone, disarm_drone
-from utils.takeoff import takeoff, return_to_launch
+from utils.takeoff import takeoff, return_to_launch, wait_for_altitude_decrease, wait_for_altitude_increase
+
 async def reposition_drone_deg(drone: Drone, coordinates: list = None):
     await drone.message_stream_exists()
 
@@ -46,3 +47,14 @@ async def reposition_drone_deg(drone: Drone, coordinates: list = None):
     print(pos_target.lon_int)
     print(pos_target.alt)
 
+async def change_altitude(drone: Drone, alt_change):
+    '''Allows drone to increase/decrease altitude in whatever units is described'''
+    current_pos = await drone.get_position_deg()
+
+    await reposition_drone_deg(drone=drone, coordinates=[current_pos['lat'], current_pos['long'], current_pos['alt']+alt_change])
+
+    if alt_change > 0:
+        await wait_for_altitude_increase(drone, current_pos['alt']+alt_change)
+    else:
+        await wait_for_altitude_decrease(drone, current_pos['alt']+alt_change)
+    
