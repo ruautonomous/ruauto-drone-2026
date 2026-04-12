@@ -43,7 +43,7 @@ This will ask for your password<br>
 
 Once you download git, it's time to create a Python virtual environment. Since we updated package lists, we should be able to easily create the virtual environment but why do we need this?
 
-We use virtual environments because its like starting with a fresh slate with no unnecessary pip packages. If we never use a venv and had to install tons of different pip packages globally, some of the packages may cause conflicts with each other, leading to hours of debugging. When you create a venv, you have
+We use virtual environments because its like starting with a fresh slate with no unnecessary pip packages. If we never use a venv and had to install tons of different pip packages globally, some of the packages may cause conflicts with each other, leading to hours of debugging. When you create a venv, you have a Python environment with the bare minimum packages, where you can install packages needed for a specific project or program.
 
 To create the environment, use the command:
 `$: sudo apt install python3-venv`
@@ -55,7 +55,7 @@ To activate the virtual environment, assuming you creating it in your home direc
 *** Replace 'venv' with whatever you named your virtual environment
 
 Next step is to clone the ardupilot repository by using this command (make sure you are in the directory you want to be in): <br> 
-> `git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git`   <br>
+`git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git`   
 <br>
 Once you have finished cloning the ardupilot repository, change directory into the ardupilot directory  <br>
 
@@ -74,24 +74,29 @@ Now you should be able to build with waf using the following commands: <br>
 
 This will take a few minutes...
 
+<b> Do this too! I am not sure why this is an issue but when you install all pre-requisites, some important packages don't install so run this command to install the extra required packages:</b>
 
+`pip install empy==3.3.4 future gnureadline MAVProxy pexpect`
+
+Also install the pip package we're going to be using to write the code pymavlink:
+
+`pip install pymavlink`
 
 
 # Running the ArduPilot SITL
 
 When we want to run the ArduPilot SITL, we first have to activate the Python virtual environment <br>
-Go to the folder in which you created your Python virtual environment and activate it:<br>
-`source venv/bin/activate`<br><br>
-In order to deactivate the venv, type: <br>
+`source ~/venv/bin/activate`<br>
+This is assuming your venv is in your home directory. If not, change directories into your 'venv' folder to activate it. In order to deactivate the venv, type: <br>
 `deactivate` <br>
 
 Then locate your ardupilot folder (containing the cloned ardupilot repository) and change directory into `ardupilot/ArduCopter` <br>
 From there, run this command to activate the SITL: <br>
-> `../Tools/autotest/sim_vehicle.py -v ArduCopter --no-rebuild --no-configure`
+`../Tools/autotest/sim_vehicle.py -v ArduCopter --no-rebuild --no-configure`
 This will start the simulation at the default location defined. If you want a custom location (like the competition location), you have to add the -l flag 
 followed by the lat,long,alt,heading
-> `../Tools/autotest/sim_vehicle.py -v ArduCopter --no-rebuild --no-configure -l 40.5230578,-74.4581335,0,0` 
-The location above is Busch Student Center. Want all the flags that you can add? Run this command:
+ `../Tools/autotest/sim_vehicle.py -v ArduCopter --no-rebuild --no-configure -l 40.5230578,-74.4581335,0,0` <br>
+The location above is Busch Student Center. To view all modifiers, run this command:
 `../Tools/autotest/sim_vehicle.py -v ArduCopter -D --help`
 <br><br>
 Once your simulation is running, you can open up QGroundControl and you will be able to see that you are connected to the drone on the SITL.
