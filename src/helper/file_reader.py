@@ -45,6 +45,17 @@ def read_geofence(file = 'info_files/fence.txt'):
 
     return geofence
 
+def file_to_list(file):
+    items = []
+    with open(file) as f:
+        while True:
+            read = f.readline()
+            if read == '':
+                return items
+            if read.__contains__("#"):
+                continue
+            read = read.removesuffix('\n')
+            items.append(read)
 
 def read_file(file):
     items = []
@@ -87,4 +98,6 @@ def read_file(file):
     land->home or land->here - 'home' will tell drone to land at where it left from. 'here' says to land right where it is
     speed->[new speed] - instructs drone to change speed to [new speed]
     mode->[mode name] - instructs drone to change mode
+    req->[message name] - requests a message
+    sendcmd->[command id]
     '''
