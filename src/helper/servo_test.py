@@ -9,9 +9,10 @@ from utils.drone import Drone
 
 async def test_servo(drone: Drone, servo_num: int = 0, servo_value: int = 1000):
     ack = await drone.send_command(command=common.MAV_CMD_DO_SET_SERVO, param1=servo_num, param2=servo_value)
-    await asyncio.sleep(2)
+    await asyncio.sleep(4)
     pass
 
 async def full_spin_servo(drone, servo_num):
     await test_servo(drone, servo_num, 2500)
     await test_servo(drone, servo_num, 500)
+    await test_servo(drone, servo_num, 1500)

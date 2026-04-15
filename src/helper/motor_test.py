@@ -31,7 +31,7 @@ async def test_all_motors(drone: Drone, throttle_value: int = 10):
                              param7=0)
     await asyncio.sleep(timeout*motor_count+1)
     
-async def test_all_motors_multiple(drone: Drone, num_times: int = 1, throttle_value:int = 5, throttle_step: int = 0):
+async def test_all_motors_multiple(drone: Drone, num_times: int = 1, throttle_value:int = 20, throttle_step: int = 0):
     for i in range(num_times):
         log_system(msg=f"Testing Motors | Iteration {i+1} | Throttle Value {throttle_value+i*throttle_step}%")
         await test_all_motors(drone=drone, throttle_value=(throttle_value+i*throttle_step))
