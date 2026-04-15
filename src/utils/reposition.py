@@ -9,6 +9,7 @@ from utils.armdisarm import arm_drone, disarm_drone
 from utils.takeoff import takeoff, return_to_launch, wait_for_altitude_decrease, wait_for_altitude_increase
 
 async def reposition_drone_deg(drone: Drone, coordinates: list = None):
+    '''takes in lat/long/rel_alt as a list of parameters and repositions drone to input parameter'''
     await drone.message_stream_exists()
 
     if not coordinates:
@@ -21,13 +22,8 @@ async def reposition_drone_deg(drone: Drone, coordinates: list = None):
     print(f'target alt of {alt}')
     if not alt:
         alt = drone.target_alt
-    
-    await arm_drone(drone=drone)
     await mode.set_mode(drone, mode.GUIDED)
     
-    await takeoff(drone=drone, target_alt=alt)
-    
-
     # print('sending pos target globa int')
     drone.get_connection().mav.set_position_target_global_int_send(
         0,                                          # time boot (ms)
@@ -58,3 +54,7 @@ async def change_altitude(drone: Drone, alt_change):
     else:
         await wait_for_altitude_decrease(drone, current_pos['alt']+alt_change)
     
+    '''work in progress'''
+async def reposition_ned(drone: Drone):
+    await drone.message_stream_exists()
+

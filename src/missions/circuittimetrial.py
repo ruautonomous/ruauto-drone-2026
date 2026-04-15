@@ -32,7 +32,7 @@ class CircuitTimeTrial:
             if lap > 3:
                 break
             if lap == 1:
-                await self.mission_handler.upload_mission(waypoints=waypoints, begin_immediately=False)
+                await self.mission_handler.upload_mission(waypoints=waypoints, begin_immediately=False, rtl=True)
                 lap_start = time.perf_counter()
                 log_system(msgname="CTT Timekeeper", msg=f'Beginning Lap {lap}')
                 await self.mission_handler.begin_mission(rtl=False)

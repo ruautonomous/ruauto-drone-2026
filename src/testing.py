@@ -38,5 +38,5 @@ def file_test():
     read_file("info_files/test_files/file_read_test.txt")
 
 if __name__ == "__main__":
-    asyncio.run(main())
-    # file_test()
+    # asyncio.run(main())
+    file_test()

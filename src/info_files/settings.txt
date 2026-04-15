@@ -10,4 +10,7 @@ airspeed=20
 servo_num=14
 square_size=1
 camera_url=rtsp://192.168.144.25:8554/main.264
-# just as a test, this should be ignored when file is parsed
+gimbal=True
+# everytime a setting is added, configure the retrieve_configuration() method in drone.py accordingly
+# I expect a lot of these settings to not be used, rather be here as zombie settings that are just in the system doing nothing
+# shouldnt impact performance tho so it doesnt matter

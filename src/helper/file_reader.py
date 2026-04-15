@@ -15,6 +15,7 @@ def read_config_file(file = 'info_files/config.txt'):
     
 
 def read_waypoints(file = 'info_files/waypoints.txt'):
+    '''If the altitudes are in feet, for the waypoint file write 'feet' in one of the files'''
     waypoints = []
     feet = False
     with open(file) as f:
@@ -57,6 +58,8 @@ def file_to_list(file):
             read = read.removesuffix('\n')
             items.append(read)
 
+'''DEPRECATED: Replaced by execute_file in file_controller.py'''
+
 def read_file(file):
     items = []
     with open(file) as f:
@@ -83,6 +86,11 @@ def read_file(file):
                     target_repo.append(float(read[0:read.index(',')]))
                     read = read[read.index(",")+1:]
                 print(f'reposition drone to {target_repo}')
+
+            if read.__len__() >= 11 and read[0:11] == "altchange->":
+                read = read[11:]
+                alt_delta = int(read)
+                print(f'changing altitude by {alt_delta} meters')
             
     return items
             

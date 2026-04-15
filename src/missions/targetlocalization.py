@@ -16,6 +16,9 @@ class TargetLocalization:
         self.drone = drone
         pass
 
+    async def upload_mission(self, rtl=True):
+        pass
+        
 
     async def begin_dummy_mission(self):
         await arm_drone(self.drone)

@@ -1,4 +1,5 @@
 # if the altitude is given in feet, write feet in one line (AND ONLY 'feet' dont write anything else)
+feet
 -35.3628918, 149.1654175, 10 
 -35.3624307, 149.1650085, 10
 -35.3626968, 149.1644055, 10

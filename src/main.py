@@ -12,6 +12,7 @@ from helper.file_reader import read_config_file
 
 from missions.waypointnavigation import WaypointNavigation
 from missions.circuittimetrial import CircuitTimeTrial
+from missions.targetlocalization import TargetLocalization
 
 async def main():
     drone = Drone()
@@ -48,9 +49,9 @@ async def mission_picker(drone: Drone):
         1:"WAYPOINT NAVIGATION",
         2:"CIRCUIT TIME TRIAL",
         3:"TARGET LOCALIZATION",
-        4:"",
-        5:"",
-        6:""
+        4:"PACKAGE DROP",
+        5:"PACKAGE DELIVERY",
+        6:"PACKAGE RECOVERY"
     }
 
     mission_files = read_config_file('info_files/mission_files.txt')
@@ -60,17 +61,21 @@ async def mission_picker(drone: Drone):
         print(f"starting mission {mission_list[current_mission]}")
         missions.remove(current_mission)
         read_file = mission_files[f'{current_mission}']
+
+        mission_rtl = True if missions.__len__() == 0 else False # if the # of missions remaining is zero, then we return to launch
         
         match(current_mission):
             case 0:
                 pass
             case 1:
                 waypointNav = WaypointNavigation(drone, read_file)
-                await waypointNav.upload_mission()
+                await waypointNav.upload_mission(rtl = mission_rtl)
             case 2:
                 circuitTimeTrial = CircuitTimeTrial(drone, read_file)
-                await circuitTimeTrial.upload_mission()
+                await circuitTimeTrial.upload_mission(rtl = mission_rtl)
             case 3:
+                targetLocalization = TargetLocalization(drone)
+                await targetLocalization.upload_mission(rtl = mission_rtl)
                 print('target localization')
             case 4:
                 print('')

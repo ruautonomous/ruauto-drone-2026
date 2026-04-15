@@ -10,6 +10,7 @@ from utils.logger import bcolors, log_system
 # etc imports
 from helper.file_reader import read_config_file
 
+
 class Drone:
     def __init__(self):
         self.message_stream = None
@@ -32,6 +33,7 @@ class Drone:
         self.square_size = int(params['square_size']) if parametersFile else 1
         self.meters = True if (parametersFile and int(params['meters']) == 0) else False
         self.camera_url = params["camera_url"] if parametersFile else None
+        self.gimbal = True if (parametersFile and params["gimbal"] == "True") else False
 
         if(configFile):
             self.config = read_config_file(configFile)
@@ -59,6 +61,8 @@ class Drone:
             print('exception idk in intialize_drone() in drone.py')
         
         self.connect_drone(connection_string=self.connection_str, port=self.port)
+        
+
 
 
     async def send_heartbeat(self):
