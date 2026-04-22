@@ -156,6 +156,7 @@ class Drone:
 
 
 
+
 class DroneProperties:
 
     CONNECTION = 'connection'

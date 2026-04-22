@@ -1,7 +1,7 @@
 import asyncio
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
-
+from helper.bullseye import center_on_target
 from utils.drone import Drone
 from utils.logger import log_system, log_fail
 import utils.mode as mode
@@ -39,6 +39,48 @@ async def reposition_drone_deg(drone: Drone, coordinates: list = None):
         (int)(long * 1e7),                               # longitude * 10^6
         alt,                                        # relative altitude (meters)
         0,0,0,0,0,0,0,0
+    )
+    # print('SENT pos target globa int')
+    pos_target = await drone.get_message_stream().request_message(common.MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT)
+    # print('recieved pos target global int')
+    print(pos_target.lat_int)
+    print(pos_target.lon_int)
+    print(pos_target.alt)
+async def reposition_drone_velo(drone: Drone, coordinates: list = None):
+    await drone.message_stream_exists()
+
+    if not coordinates:
+        log_fail(msg="Reposition Failed! No coordinates provided", msgname="REPOSITION")
+        return
+
+    lat = coordinates[0]
+    long = coordinates[1]
+    alt = coordinates[2]
+    print(f'target alt of {alt}')
+    if not alt:
+        alt = drone.target_alt
+    velocities = center_on_target(lat,long,frame_width=1000,frame_height=1000) #check res
+    vx=velocities[0]
+    vy=velocities[1]
+    vz=velocities[2]
+
+    await arm_drone(drone=drone)
+    await mode.set_mode(drone, mode.GUIDED)
+
+    await takeoff(drone=drone, target_alt=alt)
+
+    # print('sending pos target globa int')
+
+    drone.get_connection().mav.set_position_target_local_ned_send(
+        0,
+        drone.get_connection().target_system,
+        drone.get_connection().target_component,
+        common.MAV_FRAME_BODY_NED,
+        0b111111000111,  # velocity only - 0b0000111111000111
+        0, 0, 0,
+        vx, vy, vz,
+        0, 0, 0,
+        0, 0
     )
     # print('SENT pos target globa int')
     pos_target = await drone.get_message_stream().request_message(common.MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT)

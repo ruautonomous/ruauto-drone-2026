@@ -13,5 +13,5 @@
 
 #     def connect_camera(self):
 #         cam = cv2.VideoCapture(self.drone.camera_url)
-    
-'''supposedly this will be handled by imaging'''
+
+"""supposedly this will be handled by imaging"""
