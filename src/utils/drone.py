@@ -25,10 +25,13 @@ class Drone:
         self.target_alt = int(params['altitude']) if parametersFile else 10
         self.threshhold = float(params['threshhold']) if parametersFile else 0.2
         self.threshholdZ = float(params['threshholdZ']) if parametersFile else 0.1
-        self.climbspeed = int(params['climbspeed']) if parametersFile else -2
-        self.groundspeed = int(params['groundspeed']) if parametersFile else -2
+        self.climbspeed = int(params['climbspeed']) if parametersFile else -1
+        self.groundspeed = int(params['groundspeed']) if parametersFile else -1
+        self.airspeed = int(params['airspeed']) if parametersFile else -1
         self.servo_num = int(params['servo_num']) if parametersFile else -1
         self.square_size = int(params['square_size']) if parametersFile else 1
+        self.meters = True if (parametersFile and int(params['meters']) == 0) else False
+        self.camera_url = params["camera_url"] if parametersFile else None
 
         if(configFile):
             self.config = read_config_file(configFile)
@@ -113,6 +116,11 @@ class Drone:
         asyncio.create_task(self.set_home_position())
         asyncio.create_task(self.send_heartbeat())
         
+    def unit_corrector(self, value):
+        if self.meters: 
+            return value
+        else:
+            return value * 3.281
         
     # GETTERS
     def get_configuration(self):
@@ -144,7 +152,7 @@ class Drone:
 
     async def get_position_deg(self):
         current_pos = await self.get_message_stream().request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
-        return {"lat": current_pos.lat, "long": current_pos.lon, "alt": (current_pos.relative_alt/1000)}
+        return {"lat": current_pos.lat, "long": current_pos.lon, "alt": (self.unit_corrector(current_pos.relative_alt/1000))}
 
 
 

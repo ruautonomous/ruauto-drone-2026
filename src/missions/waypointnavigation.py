@@ -41,12 +41,12 @@ class   WaypointNavigation:
 
         return sorted_points
 
-    async def upload_mission(self, waypointsFile = None):
+    async def upload_mission(self, waypointsFile = None, rtl = True):
         waypoints = read_waypoints(waypointsFile) if waypointsFile else read_waypoints(self.waypointsFile)
         if self.custom_points is not None:
             waypoints = self.custom_points
         waypoints = await self.get_sorted_waypoints(waypoints)
-        await self.mission_handler.upload_mission(waypoints=waypoints)
+        await self.mission_handler.upload_mission(waypoints=waypoints, rtl=rtl)
         await self.mission_handler.begin_mission()
         
         

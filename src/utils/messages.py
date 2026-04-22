@@ -22,7 +22,7 @@ class MessageStream:
         '''Stores all important messages to a list. When a message is recieved it is compared to the elements of the array, and if the message names match,
         then the message is stored '''
         if not self.connection is None:
-            self.important_messages = reader.read_file(file)
+            self.important_messages = reader.file_to_list(file)
             print(f'initialized all important messages :) --> {self.important_messages}')
 
     async def message_stream(self):
@@ -30,7 +30,7 @@ class MessageStream:
         self.initialize_important_messages()
         self.listening = True
         while True:
-            msg = self.connection.recv_match(blocking=False)
+            msg = self.connection.recv_match(blocking=False) 
             if msg:
                 log_message(msg)
                 try:

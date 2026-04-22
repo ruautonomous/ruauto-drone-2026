@@ -11,23 +11,19 @@ from utils.geofence import Geofence
 from helper.file_reader import read_config_file
 
 from missions.waypointnavigation import WaypointNavigation
+from missions.circuittimetrial import CircuitTimeTrial
 
 async def main():
     drone = Drone()
     drone.initialize_drone(parametersFile='info_files/settings.txt', configFile='info_files/config.txt')
-    # await mission_picker(drone)
-    mission = Mission(drone=drone, waypointsFile='info_files/waypoints.txt')
+    # mission = Mission(drone=drone, waypointsFile='info_files/waypoints.txt')
     fence = Geofence(drone=drone, geofenceFile='info_files/test_files/testingfence.txt')
-    # coord = [-35.3628918, 149.1654175, 10]
-   
-    waypointNav = WaypointNavigation(drone, 'info_files/test_files/test_waypoint_nav.txt')
     
     await asyncio.gather(
         drone.start_background_processes(), 
         drone.watch_for_heartbeat(),
-        # fence.upload_fence(),
+        fence.upload_fence(),
         mission_picker(drone)
-        # mission.upload_mission(begin_immediately=True)
         )
 
 
@@ -48,6 +44,7 @@ async def mission_picker(drone: Drone):
     
     print(f'MISSIONS = {missions}')
     mission_list = {
+        0:"NO MISSION",
         1:"WAYPOINT NAVIGATION",
         2:"CIRCUIT TIME TRIAL",
         3:"TARGET LOCALIZATION",
@@ -65,11 +62,14 @@ async def mission_picker(drone: Drone):
         read_file = mission_files[f'{current_mission}']
         
         match(current_mission):
+            case 0:
+                pass
             case 1:
                 waypointNav = WaypointNavigation(drone, read_file)
                 await waypointNav.upload_mission()
             case 2:
-                print('circuit time trial')
+                circuitTimeTrial = CircuitTimeTrial(drone, read_file)
+                await circuitTimeTrial.upload_mission()
             case 3:
                 print('target localization')
             case 4:

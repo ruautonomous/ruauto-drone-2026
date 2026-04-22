@@ -1,24 +1,29 @@
 # This repository is for RUAutonomous for the 2025-2026 competition season!
-
+ # FIGURE OUT HOW PLAY_TUNE_V2 WORKS!!!
 
 
 # Installing and setting up the ArduPilot SITL
 
-The ArduPilot SITL (Software-In-The-Loop) is a simulator that can simulate our drone and lets us run this simulation on our laptop/computer without the need
-for the physical drone. This is useful during our early stages of planning to test our initial versions of our Python programs and make sure we haven't created problems within our drone.  
-# ^^ Revise ^^
+The ArduPilot SITL (Software-In-The-Loop) is a simulator that can simulate our drone and lets us run this simulation on our laptop/computer without the need for the physical drone. This is useful during our early stages of planning to test our initial versions of our Python programs and make sure we haven't created problems within our drone.  
 
-So how do we setup this ArduPilot SITL? 
+<b>So how do we setup this ArduPilot SITL? </b>
 
 ## For Windows: 
 First of all, install and setup an Ubuntu environment via WSL. It is also possible to use Cygwin for this setup but WSL is the most simple and efficient method to setup and run. <br><br>
-> Go to your Search bar and open Powershell (WITH administrator privileges) and type: `wsl --install` <br>
+Go to your Search bar and open Terminal (WITH administrator privileges) and type: `wsl --install` <br>
 By default, the distro installed will be Ubuntu. If you want a specific distro, you can see a list of distros using: `wsl.exe --list --online` and you can install
 a specific distro using: `wsl.exe --install [distro_name]` <br>
 
 When you have WSL installed, you will have to create a username and password for your Linux distro. **REMEMBER THIS INFORMATION**
 <br>
-More info on WSL and setup can be found here: https://learn.microsoft.com/en-us/windows/wsl/install <br>
+
+If WSL does not open, you will likely need to restart your computer. Now you can enter WSL by search 'wsl' in your Windows Search bar or you can open Terminal and type 'wsl'
+
+More info on WSL and setup can be found here: https://learn.microsoft.com/en-us/windows/wsl/install 
+
+Now to set up the rest of the Ardupilot SITL, follow the Linux instructions below...
+
+<br>
 
 
 ## For MacOS
@@ -34,8 +39,20 @@ First thing you want to do is to install git through your terminal  <br>
 > `sudo apt-get update`  <br>
 > `sudo apt-get install git gitk git-gui`<br> <br>
 
+This will ask for your password<br>
 
-This will ask for your password  <br>
+Once you download git, it's time to create a Python virtual environment. Since we updated package lists, we should be able to easily create the virtual environment but why do we need this?
+
+We use virtual environments because its like starting with a fresh slate with no unnecessary pip packages. If we never use a venv and had to install tons of different pip packages globally, some of the packages may cause conflicts with each other, leading to hours of debugging. When you create a venv, you have
+
+To create the environment, use the command:
+`$: sudo apt install python3-venv`
+`$: python3 -m venv venv` 
+(the second 'venv' is just the name of your virtual environment so it can be whatever you want)
+
+To activate the virtual environment, assuming you creating it in your home directory, you can run the following command:
+`source ~/venv/bin/activate`
+*** Replace 'venv' with whatever you named your virtual environment
 
 Next step is to clone the ardupilot repository by using this command (make sure you are in the directory you want to be in): <br> 
 > `git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git`   <br>

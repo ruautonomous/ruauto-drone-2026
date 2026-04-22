@@ -1,3 +1,4 @@
+0=null
 1=info_files/test_files/test_waypoint_nav.txt
 2=info_files/test_files/test_circuit_time_trial.txt
 3=info_files/test_files/test_target_localization.txt
