@@ -7,9 +7,12 @@ from utils.drone import Drone
 # FOR servo_num, 1-8 is for the MAIN channels 1-8 and 9-16 is for AUX channels
 # we'll use MAIN channels since the AUX channels are used for ESCs
 
+# WHEN THE SERVOS NEED TO BE STOPPED, CHANGE ITS PWM TO THE SERVO TRIM VALUE WHICH IS 1500us for our diymall servos
+# check what your servos trim value needs to be and also configure it in ardupilot parameters (SERVO[X]_TRIM)
+
 async def test_servo(drone: Drone, servo_num: int = 0, servo_value: int = 1000):
     ack = await drone.send_command(command=common.MAV_CMD_DO_SET_SERVO, param1=servo_num, param2=servo_value)
-    await asyncio.sleep(4)
+    await asyncio.sleep(4)  
     pass
 
 async def full_spin_servo(drone, servo_num):

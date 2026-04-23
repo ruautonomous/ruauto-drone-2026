@@ -14,6 +14,7 @@ async def execute_file(file, drone: Drone):
         while True:
             read = f.readline()
             if(read == ''):
+                print(f'finished reading {items}')
                 return items
             if(read.__contains__('#')):
                 continue
@@ -34,12 +35,27 @@ async def execute_file(file, drone: Drone):
                     target_repo.append(float(read[0:read.index(',')]))
                     read = read[read.index(",")+1:]
                 print(f'reposition drone to {target_repo}')
-                reposition_drone_deg(drone=drone, coordinates = target_repo)
+                await reposition_drone_deg(drone=drone, coordinates = target_repo)
 
             if read.__len__() >= 11 and read[0:11] == "altchange->":
                 read = read[11:]
                 alt_delta = int(read)
                 print(f'changing altitude by {alt_delta} meters')
+                await change_altitude(drone=drone, alt_change = alt_delta)
+            
+            if read.__len__() >= 9 and read[0:9] == "takeoff->":
+                read = read[9:]
+                takeoff_alt = int(read)
+                print('takeoff commencing')
+                await takeoff(drone=drone, target_alt = takeoff_alt)
+                
+            if read.__len__() >= 6 and read[0:6] == "land":
+                read = read[6:]
+                print('landing read')
+                if read == "home":
+                    await return_to_launch(drone)
+                elif read == "here":
+                    print('land here')
             
     return items
             

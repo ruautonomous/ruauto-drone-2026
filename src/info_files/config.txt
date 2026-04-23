@@ -1,9 +1,10 @@
-#connection=tcp:127.0.0.1:5763
-connection=/dev/ttyTHS1
+connection=tcp:127.0.0.1:5763
+#connection=/dev/ttyTHS1
 baud=115200
-mission=1
+mission=3
 # comments shouldnt get read
 # mission numbers
 # 1 - waypoint nav task
 # 2 - time trial
+# 3 - target localization
 # config.txt contains information about the connection of the drone, mission we are doing, etc...

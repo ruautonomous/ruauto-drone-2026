@@ -1,0 +1,3 @@
+takeoff->5
+altchange->10
+land->home

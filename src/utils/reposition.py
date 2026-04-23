@@ -55,6 +55,20 @@ async def change_altitude(drone: Drone, alt_change):
         await wait_for_altitude_decrease(drone, current_pos['alt']+alt_change)
     
     '''work in progress'''
-async def reposition_ned(drone: Drone):
-    await drone.message_stream_exists()
 
+async def reposition_velocity(drone: Drone, vx, vy, vz):
+    await drone.message_stream_exists()
+    log_system(msgname="REPOSITION (Velocity)", msg=f"Reposition drone using relative velocity. (vx,vy,vz) = ({vx},{vy},{vz}). Units in meters")
+    master = drone.get_connection()
+    master.mav.set_position_target_local_ned_send(
+        0,
+        master.target_system,
+        master.target_component,
+        common.MAV_FRAME_BODY_NED,
+        0b0000111111000111,  # velocity only
+        0, 0, 0,
+        vx, vy, vz,
+        0, 0, 0,
+        0, 0
+    )
+    
