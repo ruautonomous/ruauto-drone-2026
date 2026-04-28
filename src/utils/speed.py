@@ -3,9 +3,9 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
 
 from utils.drone import Drone, DroneProperties
-from utils.logger import log_system,log_success, log_fail
+from utils.logger import log_system
 
-
+# CURRENTLY BROKEN - 4/23/26
 async def change_speed(drone: Drone, speed: int = -1, throttle: int = -1):
     '''used to change the speed of a given drone, to an input speed (in meters/second). Throttle can also be specified'''
     if speed == -1:

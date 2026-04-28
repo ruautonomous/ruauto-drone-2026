@@ -40,11 +40,14 @@ cv2.destroyAllWindows()
 
 print("All square locations:", locations)
 
+
 def pixel_to_world(cx, cy, map_width, map_height, world_width, world_height):
     x = (cx / map_width) * world_width
     y = (cy / map_height) * world_height
     return x, y
 
+
+# ------------------------------------- EVERYTHING ABOVE HAS BEEN IMPORTED TO OFFICIAL FILE
 from ultralytics import YOLO
 
 model = YOLO("yolov8n.pt")

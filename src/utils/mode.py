@@ -4,12 +4,14 @@ from pymavlink.dialects.v20 import common
 from pymavlink import mavutil
 
 # USE mavutil.mode_mapping_rover for mode numbers
+mavutil.mode_mapping_rover
 
 STABILIZE = 0
 AUTO = 3
 GUIDED = 4
 LOITER = 5
 RTL = 6
+ALTHOLD = 2
 
 async def set_mode(drone: Drone, mode: int):
     # mode_map = {'stabilize': 0, 'auto': 3, 'guided': 4, 'loiter': 5, 'rtl': 6}

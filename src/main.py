@@ -13,6 +13,7 @@ from helper.file_reader import read_config_file
 from missions.waypointnavigation import WaypointNavigation
 from missions.circuittimetrial import CircuitTimeTrial
 from missions.targetlocalization import TargetLocalization
+from missions.autotests import *
 
 async def main():
     drone = Drone()
@@ -51,7 +52,9 @@ async def mission_picker(drone: Drone):
         3:"TARGET LOCALIZATION",
         4:"PACKAGE DROP",
         5:"PACKAGE DELIVERY",
-        6:"PACKAGE RECOVERY"
+        6:"PACKAGE RECOVERY",
+        10: "SIMPLE TAKEOFF LAND",
+        11: "UNKNOWN"
     }
 
     mission_files = read_config_file('info_files/mission_files.txt')
@@ -60,7 +63,7 @@ async def mission_picker(drone: Drone):
         current_mission = missions[0]
         print(f"starting mission {mission_list[current_mission]}")
         missions.remove(current_mission)
-        read_file = mission_files[f'{current_mission}']
+        read_file = mission_files[f'{current_mission}'] if current_mission < 10 else -1
 
         mission_rtl = True if missions.__len__() == 0 else False # if the # of missions remaining is zero, then we return to launch
         
@@ -83,6 +86,12 @@ async def mission_picker(drone: Drone):
                 print('')
             case 6:
                 print('')
+            # ALL AUTONOMOUS TESTING FLIGHTS START AT 10. anything below 10 is an official mission
+            case 10:
+                print('simple takeoff land mission')
+                await takeoff_land(drone=drone)
+            case 11:
+                print('another test mission')
 
                 
 

@@ -6,15 +6,17 @@ from utils.takeoff import *
 from utils.armdisarm import *
 from utils.logger import log_system
 from utils.reposition import *
+from utils.mission import *
 
 '''TRIAL PHASES. NOT GUARANTEED TO BE USED FOR FINAL PRODUCT. MIGHT SCRAP THIS'''
 async def execute_file(file, drone: Drone):
+
+    # holy shit i should be executed for writing this code 
     items = []
     with open(file) as f:
         while True:
             read = f.readline()
             if(read == ''):
-                print(f'finished reading {items}')
                 return items
             if(read.__contains__('#')):
                 continue
@@ -24,7 +26,7 @@ async def execute_file(file, drone: Drone):
             if read.__len__() >= 7 and read[0:7] == "redir->":
                 print(f'redirection encountered. file name: {read[7:]}')
 
-            # REPOSITION
+            # REPOSITION (LAT/LONG/ALT)
             if read.__len__() >= 6 and read[0:6] == "repo->":
                 target_repo = []
                 read = read[6:]
@@ -37,26 +39,38 @@ async def execute_file(file, drone: Drone):
                 print(f'reposition drone to {target_repo}')
                 await reposition_drone_deg(drone=drone, coordinates = target_repo)
 
+            # ALTITUDE CHANGE (CURRENTLY BROKEN)
             if read.__len__() >= 11 and read[0:11] == "altchange->":
                 read = read[11:]
                 alt_delta = int(read)
                 print(f'changing altitude by {alt_delta} meters')
                 await change_altitude(drone=drone, alt_change = alt_delta)
             
+            # TAKEOFF
             if read.__len__() >= 9 and read[0:9] == "takeoff->":
                 read = read[9:]
                 takeoff_alt = int(read)
                 print('takeoff commencing')
                 await takeoff(drone=drone, target_alt = takeoff_alt)
-                
-            if read.__len__() >= 6 and read[0:6] == "land":
+            # LAND
+            if read.__len__() >= 6 and read[0:6] == "land->":
                 read = read[6:]
                 print('landing read')
-                if read == "home":
+                if read == "home" or read == "":
                     await return_to_launch(drone)
                 elif read == "here":
                     print('land here')
             
+            # CHANGE SPEED - WIP
+            if read.__len__() >= 7 and read[0:7] == "speed->":
+                read = read[7:]
+                speed = int(read)
+                print(f"speed change requested to {speed}")
+
+            if read.__len__() >= 9 and read[0:9] == "mission->":
+                read = read[9:]
+                # likely not going to implement this. giving each flight control of the Mission obj is more useful that file controller having it
+
     return items
             
 '''Need to create some sort of scripting/redirection system. if a mission file had to read another file for info, i need to 
@@ -72,6 +86,7 @@ async def execute_file(file, drone: Drone):
     land->home or land->here - 'home' will tell drone to land at where it left from. 'here' says to land right where it is
     speed->[new speed] - instructs drone to change speed to [new speed]
     mode->[mode name] - instructs drone to change mode
-    req->[message name] - requests a message
-    sendcmd->[command id]
+    mission->{file name} - read a file and upload a mission to drone
+    req->[message name] - requests a message - [POTENTIAL]
+    sendcmd->[command id] - [POTENTIAL]
     '''

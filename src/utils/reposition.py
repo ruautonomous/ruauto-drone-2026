@@ -18,7 +18,7 @@ async def reposition_drone_deg(drone: Drone, coordinates: list = None):
     
     lat = coordinates[0]
     long = coordinates[1]
-    alt = coordinates[2]
+    alt = coordinates[2] if coordinates.__len__() > 2 else None
     print(f'target alt of {alt}')
     if not alt:
         alt = drone.target_alt
@@ -54,9 +54,9 @@ async def change_altitude(drone: Drone, alt_change):
     else:
         await wait_for_altitude_decrease(drone, current_pos['alt']+alt_change)
     
-    '''work in progress'''
 
-async def reposition_velocity(drone: Drone, vx, vy, vz):
+async def reposition_velocity(drone: Drone, vx=0, vy=0, vz=0):
+    '''Can be used to reposition the drone given vx,vy,vz velocities of the drone'''
     await drone.message_stream_exists()
     log_system(msgname="REPOSITION (Velocity)", msg=f"Reposition drone using relative velocity. (vx,vy,vz) = ({vx},{vy},{vz}). Units in meters")
     master = drone.get_connection()
