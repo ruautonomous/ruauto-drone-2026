@@ -32,7 +32,7 @@ def read_waypoints(file = 'info_files/waypoints.txt'):
 
     return waypoints
 
-def read_geofence(file = 'info_files/fence.txt'):
+def read_geofence(file = 'info_files/fences/fence.txt'):
     geofence = []
     with open(file) as f:
         while True:

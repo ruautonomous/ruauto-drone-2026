@@ -16,10 +16,11 @@ from missions.targetlocalization import TargetLocalization
 from missions.autotests import *
 
 async def main():
+    config = read_config_file('info_files/config.txt')
     drone = Drone()
     drone.initialize_drone(parametersFile='info_files/settings.txt', configFile='info_files/config.txt')
     # mission = Mission(drone=drone, waypointsFile='info_files/waypoints.txt')
-    fence = Geofence(drone=drone, geofenceFile='info_files/test_files/testingfence.txt')
+    fence = Geofence(drone=drone, geofenceFile=config['fenceFile'])
     
     await asyncio.gather(
         drone.start_background_processes(), 

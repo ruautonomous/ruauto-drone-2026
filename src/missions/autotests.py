@@ -28,5 +28,8 @@ async def takeoff_land(drone: Drone, hold_time: int = 30, alt: int = 5):
 async def breach_geofence(drone: Drone, alt: int = 5):
     '''Mission 11 - Tests geofence breach by taking off and moving drone forward until geofence is breached'''
     log_system(msgname ="Geofence Breach Test", msg=f"Test mission started. Takeoff to {alt} meters and heading forward until geofence breach")
-
     await takeoff(drone=drone, target_alt=alt)
+    fence_points = drone.get_fence_points() # ex return:  [[-35.3618507, 149.1661241], [-35.3636463, 149.1664603], [-35.3639972, 149.1641738], [-35.3621561, 149.1637265]]
+
+    
+

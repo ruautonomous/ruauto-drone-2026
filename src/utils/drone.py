@@ -8,7 +8,7 @@ from utils.messages import MessageStream
 from utils.logger import bcolors, log_system
 
 # etc imports
-from helper.file_reader import read_config_file
+from helper.file_reader import read_config_file, read_geofence
 
 
 class Drone:
@@ -38,6 +38,9 @@ class Drone:
         if(configFile):
             self.config = read_config_file(configFile)
             print(self.config)
+
+    def get_fence_points(self):
+        return read_geofence(self.config["fenceFile"])
 
     def connect_drone(self,connection_string = 'tcp:127.0.0.1:5763', port = False):
         '''This method is used to connect to the drone given the connection string'''
