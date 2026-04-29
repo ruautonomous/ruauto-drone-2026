@@ -35,45 +35,6 @@ class TargetLocalization:
         self.file = initFile
         pass
 
-    def load_model():
-        # Load trained YOLO model
-        model = YOLO("checkered_detector.pt")   # your trained weights
-
-        # Load map image
-        image_path = "map.png"
-        image = cv2.imread(image_path)
-
-        # Run detection
-        results = model(image)
-
-        locations = []
-
-        for r in results:
-            boxes = r.boxes.xyxy.cpu().numpy()
-            classes = r.boxes.cls.cpu().numpy()
-
-            for box, cls in zip(boxes, classes):
-                x1, y1, x2, y2 = box
-
-                # center location of detected square
-                cx = int((x1 + x2) / 2)
-                cy = int((y1 + y2) / 2)
-
-                locations.append((cx, cy))
-
-                # draw bounding box
-                cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), (0,255,0), 2)
-                cv2.circle(image, (cx,cy), 4, (0,0,255), -1)
-
-                print(f"Checkered square at: ({cx}, {cy})")
-
-        # Show result
-        cv2.imshow("Detections", image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-        print("All square locations:", locations)
-
     
     def pixel_to_world(cx, cy, map_width, map_height, world_width, world_height):
         '''Unused? I don't know what this is for'''
