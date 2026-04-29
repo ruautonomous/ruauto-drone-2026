@@ -3,6 +3,13 @@ from ultralytics import YOLO
 from pymavlink import mavutil
 import cv2
 from pymavlink.dialects.v20 import common
+import math
+import numpy as np
+
+from pyparsing import results
+
+from helper.math_funcs import calculate3Ddist
+from ultralytics import YOLO
 
 from utils.drone import Drone, DroneProperties
 from utils.takeoff import *
@@ -121,3 +128,149 @@ class TargetLocalization:
             vz = 0
 
         reposition_velocity(self.drone, vx=vx, vy=vy, vz=vz)
+
+    def checkered_detection():
+        # Load trained YOLO model
+        model = YOLO("checkered_detector.pt")   # your trained weights
+
+
+        # Load map image
+        image_path = "map.png"
+        image = cv2.imread(image_path)
+
+        # Run detection
+        results = model(image)
+
+        locations = []
+
+        for r in results:
+            boxes = r.boxes.xyxy.cpu().numpy()
+            classes = r.boxes.cls.cpu().numpy()
+
+            for box, cls in zip(boxes, classes):
+                x1, y1, x2, y2 = box
+
+                # center location of detected square
+                cx = int((x1 + x2) / 2)
+                cy = int((y1 + y2) / 2)
+
+                locations.append((cx, cy))
+
+                # draw bounding box
+                cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), (0,255,0), 2)
+                cv2.circle(image, (cx,cy), 4, (0,0,255), -1)
+
+                print(f"Checkered square at: ({cx}, {cy})")
+
+        # Show result
+        cv2.imshow("Detections", image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        print("All square locations:", locations)
+        return locations
+
+    def pixel_to_world(cx, cy, map_width, map_height, world_width, world_height):
+        x = (cx / map_width) * world_width
+        y = (cy / map_height) * world_height
+        return x, y
+    
+    def yolov8n():
+        model = YOLO("yolov8n.pt")
+
+        model.train(
+            data="data.yaml",
+            epochs=100,
+            imgsz=640
+        )
+        # Load map image Don't know if this is correct pls check (LWK copied from claude)
+        image_path = "map.png"
+        image = cv2.imread(image_path)
+
+        # Run detection
+        results = model(image)
+        ordered_pairs = []
+        for r in results:
+            if r.boxes.id is not None:
+                boxes = r.boxes.xyxy.cpu().numpy()
+                track_ids = r.boxes.id.cpu().numpy()
+                for box, track_id in zip(boxes, track_ids):
+                    x1, y1, x2, y2 = box
+                    cx = int((x1 + x2) / 2)
+                    cy = int((y1 + y2) / 2)
+                    ordered_pairs.append((cx, cy))
+
+        current_position = [1,0]
+        print(current_position[0])
+
+
+        closest_node = (1000,1000)
+        arranged_graph = [] # Changed to a list for mutability
+
+        # Make a mutable copy of ordered_pairs if you intend to modify it
+        ordered_points_to_process = list(ordered_pairs)
+
+        for j in range(math.factorial(len(ordered_points_to_process))):
+            if not ordered_points_to_process:
+                break # No more points to process
+
+        closest_node_current_iteration = None
+        min_distance = float('inf')
+
+        for i in ordered_points_to_process:
+            distance_to_i = calculate3Ddist(i, current_position)
+            if distance_to_i < min_distance:
+                min_distance = distance_to_i
+                closest_node_current_iteration = i
+
+            if closest_node_current_iteration is not None:
+                arranged_graph.append(closest_node_current_iteration)
+                ordered_points_to_process.remove(closest_node_current_iteration) # Correct way to remove an element from a list
+                current_position = closest_node_current_iteration
+            else:
+                break # Should not happen if ordered_points_to_process is not empty
+
+    def cost_edges():
+        n = 4  # number of vertices (number of gcp squares)
+
+        edges = [ # this will be the graph representation of the gcp squares
+            Edge(0, 1, 10),
+            Edge(0, 2, 6),
+            Edge(0, 3, 5),
+            Edge(1, 3, 15),
+            Edge(2, 3, 4)
+        ]
+
+        cost = 0
+        tree_id = [i for i in range(n)]
+        result = []
+
+        edges.sort()
+
+        for e in edges:
+            if tree_id[e.u] != tree_id[e.v]:
+                cost += e.weight
+                result.append(e)
+
+                old_id = tree_id[e.u]
+                new_id = tree_id[e.v]
+
+                for i in range(n):
+                    if tree_id[i] == old_id:
+                        tree_id[i] = new_id
+
+
+        print("Edges in MST:")
+        for e in result:
+            print(e.u, "-", e.v, ":", e.weight)
+
+        print("Total cost:", cost)
+
+class Edge:
+    def __init__(self, u, v, weight):
+        self.u = u
+        self.v = v
+        self.weight = weight
+
+    def __lt__(self, other):
+        return self.weight < other.weight
