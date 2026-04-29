@@ -54,7 +54,7 @@ async def mission_picker(drone: Drone):
         5:"PACKAGE DELIVERY",
         6:"PACKAGE RECOVERY",
         10: "SIMPLE TAKEOFF LAND",
-        11: "UNKNOWN"
+        11: "GEOFENCE BREACH"
     }
 
     mission_files = read_config_file('info_files/mission_files.txt')
@@ -81,17 +81,19 @@ async def mission_picker(drone: Drone):
                 await targetLocalization.upload_mission(rtl = mission_rtl)
                 print('target localization')
             case 4:
-                print('')
+                print('package drop')
             case 5:
-                print('')
+                print('package delivery')
             case 6:
-                print('')
+                print('package recovery')
             # ALL AUTONOMOUS TESTING FLIGHTS START AT 10. anything below 10 is an official mission
             case 10:
                 print('simple takeoff land mission')
                 await takeoff_land(drone=drone)
             case 11:
-                print('another test mission')
+                print("geofence breach")
+                await breach_geofence(drone=drone, alt = 5)
+                
 
                 
 
