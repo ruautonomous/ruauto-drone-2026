@@ -1,0 +1,3 @@
+# all altitude in METERS (feet = meters x 3.281)
+drop_alt=6
+takeoff_alt=5
