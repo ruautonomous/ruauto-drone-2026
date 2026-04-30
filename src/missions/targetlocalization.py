@@ -1,7 +1,7 @@
 import asyncio
-from ultralytics import YOLO
+#from ultralytics import YOLO
 from pymavlink import mavutil
-import cv2
+#import cv2
 from pymavlink.dialects.v20 import common
 import math
 import numpy as np
@@ -9,7 +9,7 @@ import numpy as np
 from pyparsing import results
 
 from helper.math_funcs import calculate3Ddist, haversine_distance
-from ultralytics import YOLO
+#from ultralytics import YOLO
 
 from utils.drone import Drone, DroneProperties
 from utils.takeoff import *

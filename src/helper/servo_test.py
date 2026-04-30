@@ -21,7 +21,7 @@ async def set_servo(drone: Drone, servo_num: int = 0, servo_value: int = 1000, s
     await asyncio.sleep(sleep_wait)
 
 async def servo_open_close(drone: Drone, servo_num = 1, servo_value = 1000):
-    await set_servo(drone=drone, servo_num=servo_num, servo_value=servo_value, sleep_wait=5)
+    await set_servo(drone=drone, servo_num=servo_num, servo_value=servo_value, sleep_wait=3)
     await set_servo(drone=drone, servo_num=servo_num, servo_value=SERVO_TRIM, sleep_wait=0)
 
 async def test_servo(drone: Drone, servo_num: int = 0, servo_value: int = 1000):

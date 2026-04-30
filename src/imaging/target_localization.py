@@ -1,6 +1,6 @@
-import cv2
+#import cv2
 import numpy as np
-from ultralytics import YOLO
+#from ultralytics import YOLO
 
 # Load trained YOLO model
 model = YOLO("checkered_detector.pt")   # your trained weights
