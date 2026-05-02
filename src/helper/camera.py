@@ -21,9 +21,9 @@ def main():
     connection.wait_heartbeat()
     print('connected')
 
-    test_pitch(connection)
+    #test_pitch(connection)
     test_yaw(connection)
-    test_roll(connection)
+    #test_roll(connection)
 
 def test_pitch(connection):
     pitch = 25
@@ -47,7 +47,7 @@ def test_pitch(connection):
 def test_yaw(connection):
     yaw = 135
     while yaw != -140:
-        print(f'pitch = {yaw} deg')
+        print(f'yaw = {yaw} deg')
         connection.mav.command_long_send(
             connection.target_system,
             connection.target_component,
@@ -66,7 +66,7 @@ def test_yaw(connection):
 def test_roll(connection):
     yaw = 30
     while yaw != -35:
-        print(f'pitch = {yaw} deg')
+        print(f'roll = {yaw} deg')
         connection.mav.command_long_send(
             connection.target_system,
             connection.target_component,
@@ -82,3 +82,4 @@ def test_roll(connection):
         yaw -= 5
         time.sleep(1.5)
         
+main()
