@@ -35,14 +35,17 @@ class PackageDrop:
         pass
 
     async def upload_mission(self, rtl: bool = True):
-        await self.camera()
+        asyncio.create_task(self.camera())
+        asyncio.create_task(self.movement_mission(rtl))
+        pass
+
+    async def movement_mission(self, rtl: bool = True):
         await takeoff(drone=self.drone, target_alt = self.takeoff_alt)
         await reposition_drone_deg(drone=self.drone, coordinates = self.drop_loc)
         print(f'DROP LOC IS {self.drop_loc}')
         await self.drop_package()
         if rtl:
             await return_to_launch(drone=self.drone)
-        pass
 
     def detect_bullseye(self, image) -> Optional[Tuple[int, int, int]]:
         """
