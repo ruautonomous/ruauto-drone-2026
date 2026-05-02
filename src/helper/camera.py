@@ -1,6 +1,6 @@
 # import asyncio 
-# from pymavlink import mavutil 
-# from pymavlink.dialects.v20 import common
+from pymavlink import mavutil 
+from pymavlink.dialects.v20 import common
 # import cv2
 
 # from utils.drone import Drone
@@ -15,3 +15,17 @@
 #         cam = cv2.VideoCapture(self.drone.camera_url)
     
 '''supposedly this will be handled by imaging'''
+
+connection = mavutil.mavlink_connection('/dev/ttyTHS1')
+connection.wait_heartbeat()
+
+connection.mav.command_long_send(
+    connection.target_system,
+    connection.target_component,
+    mavutil.mavlink.MAV_CMD_DO_MOUNT_CONTROL,
+    1,
+    -90.0, # pitch
+    0.0,
+    0.0,
+    0,0,0,0
+)
