@@ -103,6 +103,7 @@ class Drone:
         while True:
             if retries == 0:
                 log_system(msg="Drone connection lost...", msgname="Heartbeat Watcher (CRITICAL FAILURE)", color=bcolors.FAIL)
+                # I want to add like an RTL command but if the drone connection is lost, an RTL command doesn't f'ing matter its not gonna work
                 break
             try:
                 hb = await asyncio.wait_for(self.message_stream.wait_for_message("HEARTBEAT"), timeout=1.1)

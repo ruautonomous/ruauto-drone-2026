@@ -13,6 +13,7 @@ from helper.file_reader import read_config_file
 from missions.waypointnavigation import WaypointNavigation
 from missions.circuittimetrial import CircuitTimeTrial
 from missions.targetlocalization import TargetLocalization
+from missions.packagedrop import PackageDrop
 from missions.autotests import *
 
 async def main():
@@ -82,6 +83,8 @@ async def mission_picker(drone: Drone):
                 await targetLocalization.upload_mission(rtl = mission_rtl)
                 print('target localization')
             case 4:
+                packageDrop = PackageDrop(drone, read_file)
+                await packageDrop.upload_mission(rtl = mission_rtl)
                 print('package drop')
             case 5:
                 print('package delivery')
