@@ -35,6 +35,7 @@ class PackageDrop:
         pass
 
     async def upload_mission(self, rtl: bool = True):
+        await self.camera()
         await takeoff(drone=self.drone, target_alt = self.takeoff_alt)
         await reposition_drone_deg(drone=self.drone, coordinates = self.drop_loc)
         print(f'DROP LOC IS {self.drop_loc}')
@@ -88,6 +89,31 @@ class PackageDrop:
         
         return None
 
+    async def camera(self):
+        cam_id = 0
+
+        # Initialize capture
+        # We try V4L2 first as it's standard for the SIYI A8 Mini
+        cap = cv2.VideoCapture(cam_id, cv2.CAP_V4L2)
+
+        # Set the resolution to match your SIYI output
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
+        if not cap.isOpened():
+            print(f"Error: Could not open camera at /dev/video{cam_id}")
+            exit()
+
+        print("Stream Started. Press 'q' to exit.")
+
+        while True:
+            ret, frame = cap.read()
+            self.set_camera_frame(frame)
+            if not ret:
+                print("Empty frame received. Check connections.")
+                break
+            await asyncio.sleep(1)
+ 
     def calculate_movement_to_center(self, target_x, target_y, frame_width, frame_height):
         """
         Calculate velocity commands to center drone on target
@@ -148,16 +174,20 @@ class PackageDrop:
         
         return True
 
+    def set_camera_frame(self, frame):
+        self.newest_frame = frame
+
     def _get_camera_frame(self):
         """
         Placeholder for camera frame acquisition
         You need to implement this based on your camera setup
         """
+        return self.newest_frame
         # Example implementation:
         # return your_camera.get_frame()
         pass
 
-    def bullseye_mission(self):
+    async def bullseye_mission(self):
         # -*- coding: utf-8 -*-
         """opencv bullseye detection
 
@@ -179,14 +209,15 @@ class PackageDrop:
                 
                 if frame is None:
                     print("No camera frame available")
-                    time.sleep(0.1)
+                    await asyncio.sleep(0.2)
+                    # time.sleep(0.1)
                     continue
                 
                 detection_result = self.detect_bullseye(frame)
                 
                 if detection_result is None:
                     print("No bullseye detected")
-                    time.sleep(0.1)
+                    await asyncio.sleep(0.1)
                     continue
                 
                 target_x, target_y, radius = detection_result
