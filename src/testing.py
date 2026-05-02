@@ -38,6 +38,14 @@ async def main():
 def file_test():
     read_file("info_files/test_files/file_read_test.txt")
 
+async def tmux_test():
+    i = 1
+    while True:
+        print(f"Counter: {i}")
+        await asyncio.sleep(1)
+        i += 1
+
 if __name__ == "__main__":
     asyncio.run(main())
+    asyncio.run(tmux_test())
     #file_test()
