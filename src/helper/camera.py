@@ -24,6 +24,7 @@ def main():
     #test_pitch(connection)
     test_yaw(connection)
     #test_roll(connection)
+    random_pos(connection)
 
 def test_pitch(connection):
     pitch = 25
@@ -82,4 +83,22 @@ def test_roll(connection):
         yaw -= 5
         time.sleep(1.5)
         
+import random
+def random_pos(connection):
+    pitch=random.randint(-90,25)
+    yaw = random.randint(-90,90)
+    print(f'pitch = {pitch} | yaw = {yaw} deg')
+    connection.mav.command_long_send(
+        connection.target_system,
+        connection.target_component,
+        mavutil.mavlink.MAV_CMD_DO_MOUNT_CONTROL,
+        1,
+        float(pitch), # pitch
+        0, # roll
+        float(yaw), # yaw
+        0,0,0,2
+    )
+    ack = connection.recv_match(type="COMMAND_ACK", blocking=True)
+    print(ack)
+
 main()
