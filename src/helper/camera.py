@@ -15,23 +15,25 @@ from pymavlink.dialects.v20 import common
 #         cam = cv2.VideoCapture(self.drone.camera_url)
     
 '''supposedly this will be handled by imaging'''
-
+import time
 connection = mavutil.mavlink_connection('/dev/ttyTHS1')
 connection.wait_heartbeat()
 print('connected')
 
 pitch = 25
 while pitch != -91:
+    print(f'pitch = {pitch} deg')
     connection.mav.command_long_send(
         connection.target_system,
         connection.target_component,
         mavutil.mavlink.MAV_CMD_DO_MOUNT_CONTROL,
         1,
         float(pitch), # pitch
-        0.0,
-        0.0,
+        0.0, # roll
+        0.0, # yaw
         0,0,0,2
     )
     ack = connection.recv_match(type="COMMAND_ACK", blocking=True)
     print(ack)
     pitch -= 5
+    time.sleep(1.5)
