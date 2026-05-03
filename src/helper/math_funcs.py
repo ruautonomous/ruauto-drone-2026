@@ -14,8 +14,10 @@ def calculate3Ddist(x: list[3] = [0,0,0],y: list[3] = [0,0,0]):
 
 # haversine is used for calculating distances on a spherical planet DONT USE A REGULAR 3D DISTANCE FORMULA THATS ONLY FOR FLAT SURFACES
 
+import math
+
 def haversine_distance(x: list[3] = [0,0,0],y: list[3] = [0,0,0]):
-    '''takes two coordinates (lat,long in degrees) and finds the distance between then'''
+    '''takes two coordinates (lat,long in degrees NOT SCALED BY 1e7 and altitude in METERS) and finds the distance between then. Return value in METERS'''
     lat1, lon1, alt1 = x
     lat2, lon2, alt2 = y
     R = 6371.0
@@ -29,5 +31,11 @@ def haversine_distance(x: list[3] = [0,0,0],y: list[3] = [0,0,0]):
     
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     
-    return R * c * 1000
-
+    # Horizontal distance in meters
+    horizontal_dist = R * c * 1000
+    
+    # Vertical distance (difference in altitude)
+    vertical_dist = alt2 - alt1
+    
+    # Resultant 3D distance using Pythagorean theorem
+    return math.sqrt(horizontal_dist**2 + vertical_dist**2)

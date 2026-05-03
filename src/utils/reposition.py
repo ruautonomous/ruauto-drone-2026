@@ -3,10 +3,12 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
 
 from utils.drone import Drone
-from utils.logger import log_system, log_fail
+from utils.logger import log_system, log_fail, log_success
 import utils.mode as mode
 from utils.armdisarm import arm_drone, disarm_drone
 from utils.takeoff import takeoff, return_to_launch, wait_for_altitude_decrease, wait_for_altitude_increase
+
+from helper.math_funcs import haversine_distance
 
 async def reposition_drone_deg(drone: Drone, coordinates: list = None):
     '''takes in lat/long/rel_alt as a list of parameters and repositions drone to input parameter'''
@@ -22,6 +24,7 @@ async def reposition_drone_deg(drone: Drone, coordinates: list = None):
     print(f'target alt of {alt}')
     if not alt:
         alt = drone.target_alt
+        coordinates = [lat,long,alt]
     await mode.set_mode(drone, mode.GUIDED)
     
     # print('sending pos target globa int')
@@ -42,6 +45,14 @@ async def reposition_drone_deg(drone: Drone, coordinates: list = None):
     print(pos_target.lat_int)
     print(pos_target.lon_int)
     print(pos_target.alt)
+    while True:
+        current_pos = await drone.get_position_deg()
+        dist_target = haversine_distance([current_pos['lat'], current_pos['long'], current_pos['alt']], [lat,long,alt])
+        log_system(msgname="Reposition", msg=f"{dist_target} meters from target location")
+        if dist_target < 3:
+            log_success(msg='Drone reached target location')
+            break
+        await asyncio.sleep(1)
 
 async def change_altitude(drone: Drone, alt_change):
     '''Allows drone to increase/decrease altitude in whatever units is described'''

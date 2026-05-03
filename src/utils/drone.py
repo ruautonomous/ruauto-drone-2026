@@ -160,6 +160,10 @@ class Drone:
 
     async def get_position_deg(self):
         current_pos = await self.get_message_stream().request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
+        return {"lat": ((float)(current_pos.lat))/1e7, "long": ((float)(current_pos.lon))/1e7, "alt": current_pos.relative_alt/1000}
+
+    async def get_position_int(self):
+        current_pos = await self.get_message_stream().request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
         return {"lat": current_pos.lat, "long": current_pos.lon, "alt": current_pos.relative_alt/1000}
 
     async def get_altitude(self) -> float:

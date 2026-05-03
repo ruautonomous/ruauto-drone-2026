@@ -9,6 +9,7 @@ from utils.reposition import *
 import utils.mode as mode
 from helper.servo_test import *
 from helper.file_reader import read_config_file
+from helper.gimbal import reposition_gimbal
 
 import cv2
 import numpy as np
@@ -35,7 +36,7 @@ class PackageDrop:
         pass
 
     async def upload_mission(self, rtl: bool = True):
-        asyncio.create_task(self.camera())
+        #asyncio.create_task(self.camera())
         asyncio.create_task(self.movement_mission(rtl))
         pass
 
@@ -43,6 +44,7 @@ class PackageDrop:
         await takeoff(drone=self.drone, target_alt = self.takeoff_alt)
         await reposition_drone_deg(drone=self.drone, coordinates = self.drop_loc)
         print(f'DROP LOC IS {self.drop_loc}')
+        '''CALL THE IMAGING STUFF HERE'''
         await self.drop_package()
         if rtl:
             await return_to_launch(drone=self.drone)
@@ -105,16 +107,17 @@ class PackageDrop:
 
         if not cap.isOpened():
             print(f"Error: Could not open camera at /dev/video{cam_id}")
-            exit()
+            return
 
         print("Stream Started. Press 'q' to exit.")
 
         while True:
             ret, frame = cap.read()
-            self.set_camera_frame(frame)
             if not ret:
                 print("Empty frame received. Check connections.")
                 break
+            else:
+                self.set_camera_frame(frame)
             await asyncio.sleep(1)
  
     def calculate_movement_to_center(self, target_x, target_y, frame_width, frame_height):
