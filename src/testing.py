@@ -22,8 +22,8 @@ async def main():
     #fence = Geofence(drone=drone, geofenceFile='info_files/test_files/testingfence.txt')
     # coord = [-35.3628918, 149.1654175, 10]
    
-    waypointNav = WaypointNavigation(drone, 'info_files/test_files/test_waypoint_nav.txt')
-    targetloc = TargetLocalization(drone)
+    #waypointNav = WaypointNavigation(drone, 'info_files/test_files/test_waypoint_nav.txt')
+    #targetloc = TargetLocalization(drone)
     
     
     await asyncio.gather(
@@ -35,7 +35,7 @@ async def main():
         #servo_test.servo_open_close(drone=drone, servo_value=800)
         servo_test.reset_servo(drone=drone, servo_num=1),
         servo_test.reset_servo(drone=drone, servo_num=3),
-        servo_test.unravel_spool(drone=drone, servo_num=1),
+        servo_test.unravel_spool(drone=drone, servo_num=1, opposite=False),
         servo_test.unravel_spool(drone=drone, servo_num=3, opposite=True)
     )
 
