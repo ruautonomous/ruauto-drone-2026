@@ -36,7 +36,7 @@ class PackageDrop:
         pass
 
     async def upload_mission(self, rtl: bool = True):
-        #asyncio.create_task(self.camera())
+        asyncio.create_task(self.camera())
         asyncio.create_task(self.movement_mission(rtl))
         pass
 
@@ -45,7 +45,7 @@ class PackageDrop:
         await reposition_drone_deg(drone=self.drone, coordinates = self.drop_loc)
         await reposition_gimbal(drone=self.drone, pitch=-90)
         print(f'DROP LOC IS {self.drop_loc}')
-        '''CALL THE IMAGING STUFF HERE'''
+        await self.bullseye_mission()
         await self.drop_package()
         if rtl:
             await return_to_launch(drone=self.drone)
@@ -165,18 +165,7 @@ class PackageDrop:
         """
         if is_centered:
             # Send zero velocity command to stop movement
-            self.drone.master.mav.set_position_target_local_ned_send(
-                0,
-                self.drone.master.target_system,
-                self.drone.master.target_component,
-                mavutil.mavlink.MAV_FRAME_BODY_NED,
-                0b0000111111000111,  # velocity only
-                0, 0, 0,
-                0, 0, 0,  # zero velocities
-                0, 0, 0,
-                0, 0
-            )
-            print("Drone centered on target - movement stopped")
+            #print("Drone centered on target - movement stopped")
             return False
         
         return True
@@ -229,25 +218,16 @@ class PackageDrop:
         
             # Altitude safety check
             if current_alt < self.MIN_ALT_METERS:
-                vz = -0.5  # ascend slightly
+                vz = 0.5  # ascend slightly
         
             # 3. STOPPING PHASE - Stop when drone reaches center within tolerance
             if not self.stop_movement_when_centered(is_centered):
                 print("Mission complete - drone centered on bullseye!")
+                await reposition_velocity(drone=self.drone, vx=0, vy=0, vz=0) # CHANGE TO LOITER IF NECESSARY
                 return True
         
             # Send movement commands if not centered
-            self.drone.master.mav.set_position_target_local_ned_send(
-                0,
-                self.drone.master.target_system,
-                self.drone.master.target_component,
-                mavutil.mavlink.MAV_FRAME_BODY_NED,
-                0b0000111111000111,  # velocity only
-                0, 0, 0,
-                vx, vy, vz,
-                0, 0, 0,
-                0, 0
-            )
+            await reposition_velocity(drone=self.drone, vx=vx, vy=vy, vz=vz)
             
             return False
         except KeyboardInterrupt:
