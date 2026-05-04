@@ -14,6 +14,8 @@ from missions.waypointnavigation import WaypointNavigation
 from missions.circuittimetrial import CircuitTimeTrial
 from missions.targetlocalization import TargetLocalization
 from missions.packagedrop import PackageDrop
+from missions.packagedelivery import PackageDelivery
+from missions.packagerecovery import PackageRecovery
 from missions.autotests import *
 
 async def main():
@@ -88,8 +90,12 @@ async def mission_picker(drone: Drone):
                 print('package drop')
             case 5:
                 print('package delivery')
+                packageDelivery = PackageDelivery(drone=drone, initFile=read_file)
+                await packageDelivery.upload_mission(rtl=mission_rtl)
             case 6:
                 print('package recovery')
+                packageRecovery = PackageRecovery(drone=drone, initFile = read_file)
+                await packageRecovery.upload_mission(rtl=mission_rtl)
             # ALL AUTONOMOUS TESTING FLIGHTS START AT 10. anything below 10 is an official mission
             case 10:
                 print('simple takeoff land mission')

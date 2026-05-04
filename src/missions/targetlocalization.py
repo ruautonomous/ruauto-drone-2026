@@ -19,13 +19,27 @@ from utils.armdisarm import *
 from utils.reposition import *
 
 from helper.file_controller import *
+from helper.gimbal import reposition_gimbal
+from helper.file_reader import *
 
-
+'''
+• 5-10 objects will be distributed within a predefined area of the competition course.
+• A very rough set of bounding GPS coordinates will be provided, and four larger objects will
+define a tighter area which contains all identification objects.
+• Teams must localize and identify the targets, providing a list of their locations and identifying
+number no later than 30 minutes after the end of their flight slot. The UAS must not descent
+below 25 feet (7.62 meters) while searching for objects.
+• If all objects are correctly identified and localized, a total of 14 points will be awarded.
+• 0.5 points will be deduced for each object that is either not correctly identified or not correctly
+localized, and 1 point if both are true.
+• If the UAS descends below 25 feet but not below 20 feet, 3 points will be deducted from the
+calculated score. If the UAS descends below 20 feet, a flat score of 0 will be awarded.
+'''
 
 class TargetLocalization:
 
     # CONSTANTS
-    MIN_ALT_METERS = 15   # 30 feet
+    MIN_ALT_METERS = 30/3.281   # 30 feet / 3.281 = X meters
     PIXEL_TOLERANCE = 20     # pixels deadband
     GAIN = 0.002             # velocity scaling factor
     MAX_VEL = 1.0            # m/s cap
@@ -33,20 +47,18 @@ class TargetLocalization:
     def __init__(self, drone: Drone, initFile: str = None):
         self.drone = drone
         self.file = initFile
+        self.bounding = read_geofence(initFile)
         pass
 
 
 
     async def upload_mission(self, rtl=True):
+        await takeoff(drone=self.drone, target_alt = self.MIN_ALT_METERS)
+        await reposition_gimbal(drone=self.drone, pitch=-90)
+        if rtl:
+            await return_to_launch(drone=self.drone)
         pass
         
-
-    async def begin_dummy_mission(self):
-        await arm_drone(self.drone)
-        await mode.set_mode(drone=self.drone, mode=mode.GUIDED)
-        await takeoff(drone=self.drone, target_alt=10)
-        await reposition_drone_deg(self.drone, [-35.3618419,149.1651785,10])
-        await change_speed(self.drone, 15)
 
     async def center_on_target(self, target_x, target_y, frame_width, frame_height):
 

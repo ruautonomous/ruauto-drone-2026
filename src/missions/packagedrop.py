@@ -43,6 +43,7 @@ class PackageDrop:
     async def movement_mission(self, rtl: bool = True):
         await takeoff(drone=self.drone, target_alt = self.takeoff_alt)
         await reposition_drone_deg(drone=self.drone, coordinates = self.drop_loc)
+        await reposition_gimbal(drone=self.drone, pitch=-90)
         print(f'DROP LOC IS {self.drop_loc}')
         '''CALL THE IMAGING STUFF HERE'''
         await self.drop_package()

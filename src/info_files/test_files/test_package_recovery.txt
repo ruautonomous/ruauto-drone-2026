@@ -1,0 +1,1 @@
+pickup_loc=6,7

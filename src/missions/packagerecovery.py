@@ -10,9 +10,10 @@ import utils.mode as mode
 
 class PackageRecovery:
     
-    def __init__(self, drone: Drone):
+    def __init__(self, drone: Drone, initFile = None):
         self.drone = drone
+        self.file = initFile
 
-    async def upload_mission(self):
+    async def upload_mission(self, rtl:bool = True):
         pass
     

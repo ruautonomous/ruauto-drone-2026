@@ -1,3 +1,1 @@
-takeoff->5
-altchange->10
-land->home
+# im thinking this just has 4 bounding box coordinates

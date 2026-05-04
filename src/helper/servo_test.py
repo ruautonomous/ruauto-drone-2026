@@ -33,3 +33,9 @@ async def full_spin_servo(drone, servo_num):
     await test_servo(drone, servo_num, 2500)
     await test_servo(drone, servo_num, 500)
     await test_servo(drone, servo_num, 1500)
+
+async def unravel_spool(drone, servo_num, sleep = 5):
+    await set_servo(drone=drone, servo_num=servo_num, servo_value=(1.1*SERVO_TRIM), sleep_wait=sleep)
+    await set_servo(drone=drone,servo_num=servo_num, servo_value=SERVO_TRIM) 
+    # i believe since 360 servos, the value determines speed and dir in which they spin, not a position, going 10% above trim should 
+    # spin the servo one way at a fair speed
