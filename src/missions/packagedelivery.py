@@ -33,15 +33,17 @@ class PackageDelivery:
             self.servos = [1,2]
 
     async def upload_mission(self, rtl:bool = True):
-        await takeoff(drone=self.drone, target_alt=self.alt) 
-        await reposition_gimbal(drone=self.drone, pitch=-90)
-        await reposition_drone_deg(drone=self.drone, coordinates=self.drop_loc)
+        #await takeoff(drone=self.drone, target_alt=self.alt) 
+        #await reposition_gimbal(drone=self.drone, pitch=-90)
+        #await reposition_drone_deg(drone=self.drone, coordinates=self.drop_loc)
         '''IMAGING CODE HERE!!!'''
         await self.drop_spool(servos=None, sleep_time=60) # allowing 60 seconds to unravel spool. change this if tests are done
+        '''
         if rtl:
             await return_to_launch(self.drone)
         pass
+        '''
 
-    async def drop_spool(self, servos, sleep_time=10):
-        for servo in servos:
-            asyncio.create_task(unravel_spool(drone=self.drone, servo_num=servo, sleep=sleep_time))
+    async def drop_spool(self, servos, sleep_time=10, percent: int = 30):
+        for i,servo in enumerate(servos):
+            asyncio.create_task(unravel_spool(drone=self.drone, servo_num=servo, sleep=sleep_time, percentage=percent, opposite=(i%2==1)))
