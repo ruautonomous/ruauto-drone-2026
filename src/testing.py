@@ -33,6 +33,8 @@ async def main():
         #motor_test.test_all_motors_multiple(drone=drone, num_times=3, throttle_step=5, throttle_value=20)
         # servo_test.full_spin_servo(drone, 1)
         #servo_test.servo_open_close(drone=drone, servo_value=800)
+        servo_test.reset_servo(drone=drone, servo_num=1),
+        servo_test.reset_servo(drone=drone, servo_num=3),
         servo_test.unravel_spool(drone=drone, servo_num=1),
         servo_test.unravel_spool(drone=drone, servo_num=3, opposite=True)
     )

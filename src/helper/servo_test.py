@@ -29,6 +29,9 @@ async def test_servo(drone: Drone, servo_num: int = 0, servo_value: int = 1000):
     await asyncio.sleep(4)  
     pass
 
+async def reset_servo(drone, servo_num):
+    await set_servo(drone=drone, servo_num=servo_num, servo_value=SERVO_TRIM)
+
 async def full_spin_servo(drone, servo_num):
     await test_servo(drone, servo_num, 2500)
     await test_servo(drone, servo_num, 500)
