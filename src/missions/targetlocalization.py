@@ -23,7 +23,6 @@ from helper.gimbal import reposition_gimbal
 from helper.file_reader import *
 
 from helper.serve_object_coords import serve_object_coords
-from utils.drone import get_position_deg, get_heading
 
 '''
 • 5-10 objects will be distributed within a predefined area of the competition course.
@@ -157,8 +156,8 @@ async def yolov8n(frame):
             track_ids = r.boxes.id.cpu().numpy()
             for box, track_id in zip(boxes, track_ids):
 
-                drone_position = await get_position_deg() # latitude, longitude, altitude
-                drone_heading = await get_heading()
+                drone_position = await self.drone.get_position_deg() # latitude, longitude, altitude
+                drone_heading = await self.drone.get_heading()
                 coords = serve_object_coords(box, image.shape, drone_position["lat"], drone_position["long"], drone_position["alt"], drone_heading)
                 
                 ordered_pairs.append(coords)
