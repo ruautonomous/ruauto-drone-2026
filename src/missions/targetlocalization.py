@@ -22,6 +22,9 @@ from helper.file_controller import *
 from helper.gimbal import reposition_gimbal
 from helper.file_reader import *
 
+from helper.serve_object_coords import serve_object_coords
+from utils.drone import get_position_deg
+
 '''
 • 5-10 objects will be distributed within a predefined area of the competition course.
 • A very rough set of bounding GPS coordinates will be provided, and four larger objects will
@@ -139,17 +142,11 @@ def pixel_to_world(cx, cy, map_width, map_height, world_width, world_height):
         x = (cx / map_width) * world_width
         y = (cy / map_height) * world_height
         return x, y
-def yolov8n():
-    model = YOLO("yolov8n.pt")
+async def yolov8n(frame):
+    model = YOLO("yolov26n.pt")
 
-    model.train(
-        data="data.yaml",
-        epochs=100,
-        imgsz=640
-    )
     # Don't know whats the image path for yolo8?
-    image_path = "map.png"
-    image = cv2.imread(image_path)
+    image = cv2.imread(frame)
 
     # Run detection
     results =  model.track(source= image,stream=True)
@@ -159,10 +156,11 @@ def yolov8n():
             boxes = r.boxes.xyxy.cpu().numpy()
             track_ids = r.boxes.id.cpu().numpy()
             for box, track_id in zip(boxes, track_ids):
-                x1, y1, x2, y2 = box
-                cx = int((x1 + x2) / 2)
-                cy = int((y1 + y2) / 2)
-                ordered_pairs.append((cx, cy))
+
+                drone_position = await get_position_deg()
+                coords = serve_object_coords(box, image.shape, drone_position["lat"], drone_position["long"], drone_position["alt"], drone_position["hdg"])
+                
+                ordered_pairs.append(coords)
 
     current_position = [1,0]
     print(current_position[0])
