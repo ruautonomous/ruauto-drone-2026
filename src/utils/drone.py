@@ -66,6 +66,11 @@ class Drone:
         self.connect_drone(connection_string=self.connection_str, port=self.port)
         
 
+    async def send_callsign(self, repeat = False):
+        '''emitting callsign as required for all Hams every 10 minutes. emitting every 9 mins 30 secs to be safe'''
+        while True:
+            self.get_connection().mav.statustext_send(common.MAV_SEVERITY_INFO, "DE KE2HMF - Telemetry Link")
+            await asyncio.sleep(570)
 
 
     async def send_heartbeat(self):
@@ -123,6 +128,7 @@ class Drone:
         asyncio.create_task(self.message_stream.message_stream())
         asyncio.create_task(self.set_home_position())
         asyncio.create_task(self.send_heartbeat())
+        asyncio.create_task(self.send_callsign(repeat=True))
         
     def unit_corrector(self, value):
         if self.meters: 

@@ -28,6 +28,7 @@ async def return_to_launch(drone: Drone):
     await wait_for_altitude_decrease(drone, home_pos['alt'], msgname="RTL Handler")
     await mode.set_mode(drone=drone, mode=mode.STABILIZE)
     await disarm_drone(drone)
+    await drone.send_callsign(repeat=False)
 
 
 async def wait_for_altitude_increase(drone: Drone, target_alt, msgname="Increasing Altitude"):
