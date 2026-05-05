@@ -9,7 +9,7 @@ def serve_object_coords(bbox: tuple, img_shape: tuple, lat: float, lon: float, a
     gsd = 2 * alt * np.tan(np.radians(75.0 / 2.0)) / img_shape[1]
 
     objects = []
-    x1, y1, x2, y2 = box
+    x1, y1, x2, y2 = bbox
 
     center_x = float((x1+x2) / 2)
     center_y = float((y1+y2) / 2)
