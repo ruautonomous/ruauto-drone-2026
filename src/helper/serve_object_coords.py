@@ -1,8 +1,8 @@
 import numpy as np
 import cv2
 
-from constants import UNIT_TO_METERS, R_EARTH_IN_METERS
-from model_interface import DetectionModel
+from helper.constants import UNIT_TO_METERS, R_EARTH_IN_METERS
+from helper.model_interface import DetectionModel
 
 
 def serve_object_coords(bbox: tuple, img_shape: tuple, lat: float, lon: float, alt: float, hdg: float):

@@ -35,7 +35,7 @@ class PackageDelivery:
             # print(f'servo nums for package delivery are {self.servos}')
             # shitty code. im writing this at night i hope it works lol 
         except:
-            self.servos = [1,2]
+            self.servos = [1,3]
 
     async def upload_mission(self, rtl:bool = True):
         #await takeoff(drone=self.drone, target_alt=self.alt) 
