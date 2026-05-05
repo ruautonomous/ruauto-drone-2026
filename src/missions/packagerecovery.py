@@ -24,8 +24,14 @@ class PackageRecovery:
         pass
     
     async def turn_hook(self):
-        await set_servo(drone=self.drone, servo_num=1, servo_value=1.3*SERVO_TRIM, sleep_wait=2)
-        await set_servo(drone=self.drone, servo_num=1, servo_value=SERVO_TRIM, sleep_wait=0)
+        await asyncio.gather(
+            set_servo(drone=self.drone, servo_num=1, servo_value=1.3*SERVO_TRIM, sleep_wait=2),
+            set_servo(drone=self.drone, servo_num=3, servo_value=0.7*SERVO_TRIM, sleep_wait=2)
+            )
+        await asyncio.gather(
+            set_servo(drone=self.drone, servo_num=1, servo_value=SERVO_TRIM, sleep_wait=2),
+            set_servo(drone=self.drone, servo_num=3, servo_value=SERVO_TRIM, sleep_wait=2)
+            )
         pass
     
     def start_listener():
