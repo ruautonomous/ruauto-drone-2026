@@ -9,6 +9,8 @@ from utils.armdisarm import *
 from utils.reposition import *
 import utils.mode as mode
 
+from helper.servo_test import *
+
 class PackageRecovery:
     
     def __init__(self, drone: Drone, initFile = None):
@@ -16,10 +18,15 @@ class PackageRecovery:
         self.file = initFile
 
     async def upload_mission(self, rtl:bool = True):
-        server_sock = self.start_listener()
-        current_weight = self.get_current_weight(server_sock)
+        #server_sock = self.start_listener()
+        #current_weight = self.get_current_weight(server_sock)
+        await self.turn_hook()
         pass
     
+    async def turn_hook(self):
+        await set_servo(drone=self.drone, servo_num=1, servo_value=1.3*SERVO_TRIM, sleep_wait=2)
+        await set_servo(drone=self.drone, servo_num=1, servo_value=SERVO_TRIM, sleep_wait=0)
+        pass
     
     def start_listener():
         UDP_IP = "127.0.0.1"
