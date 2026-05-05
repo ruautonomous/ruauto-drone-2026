@@ -17,8 +17,9 @@ SERVO_MAX_DROP = 2000
 SERVO_TRIM = 1500
 
 async def set_servo(drone: Drone, servo_num: int = 0, servo_value: int = 1000, sleep_wait = 5):
-    ack = await drone.send_command(command=common.MAV_CMD_DO_SET_SERVO, param1=servo_num, param2=servo_value)
-    await asyncio.sleep(sleep_wait)
+    await drone.send_command_no_ack(command=common.MAV_CMD_DO_SET_SERVO, param1=servo_num, param2=servo_value)
+    # ack = await drone.send_command(command=common.MAV_CMD_DO_SET_SERVO, param1=servo_num, param2=servo_value)
+    # await asyncio.sleep(sleep_wait)
 
 async def servo_open_close(drone: Drone, servo_num = 1, servo_value = 1000):
     await set_servo(drone=drone, servo_num=servo_num, servo_value=servo_value, sleep_wait=3)

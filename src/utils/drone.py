@@ -85,6 +85,11 @@ class Drone:
         return await self.message_stream.send_command(command=command, param1=param1, param2=param2, param3=param3, param4=param4,
                                                                           param5=param5, param6=param6, param7=param7, timeout=timeout)
     
+    async def send_command_no_ack(self, command: int, param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 5):
+        '''Same exact thing as send_command() but it only sends the command and does not wait for the ack'''
+        self.get_connection().mav.command_long_send(self.connection.target_system, self.connection.target_component, command, 0, 
+                                         param1,param2,param3,param4,param5,param6,param7)
+
     async def send_command_int(self, command: int, param1 = 0, param2 = 0, param3 = 0, param4 = 0, param5 = 0, param6 = 0, param7 = 0, timeout = 5, frame=common.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT):
         '''Sends a command using command_int_send. Recommended for when sending commands that require integer positions as parameters. Also recommended that you specify each parameter passed in'''
         print(f"SENDING COMMAND INT {command}")
