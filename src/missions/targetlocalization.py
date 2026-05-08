@@ -63,12 +63,7 @@ class TargetLocalization:
 
     async def gcp_mission(self, frame):
         model = YOLO("yolov26n.pt")
-
-        # Don't know whats the image path for yolo8?
-        image = cv2.imread(frame)
-
-        # Run detection
-        results = model.track(source=image, stream=True)
+        results = model.track(source=frame, stream=True)
         ordered_pairs = []
         for r in results:
             if r.boxes.id is not None:
@@ -77,15 +72,12 @@ class TargetLocalization:
                 for box, track_id in zip(boxes, track_ids):
                     drone_position = await self.drone.get_position_deg()  # latitude, longitude, altitude
                     drone_heading = await self.drone.get_heading()
-                    coords = serve_object_coords(box, image.shape, drone_position["lat"], drone_position["long"],
+                    coords = serve_object_coords(box, frame.shape, drone_position["lat"], drone_position["long"],
                                                  drone_position["alt"], drone_heading)
 
                     ordered_pairs.append(coords)
-
-        current_position = [1, 0]
-        print(current_position[0])
-
-        closest_node = (1000, 1000)
+        current_position = await self.drone.get_position_deg()
+        closest_node = (np.inf, np.inf)
         arranged_graph = []  # Changed to a list for mutability
 
         # Make a mutable copy of ordered_pairs if you intend to modify it
@@ -113,6 +105,7 @@ class TargetLocalization:
             else:
                 break  # Should not happen if ordered_points_to_process is not empty
         return arranged_graph
+
     async def center_on_target(self, target_x, target_y, frame_width, frame_height):
 
         frame_center_x = frame_width // 2
@@ -147,11 +140,11 @@ class TargetLocalization:
 
         reposition_velocity(self.drone, vx=vx, vy=vy, vz=vz)
 
-
 def pixel_to_world(cx, cy, map_width, map_height, world_width, world_height):
         x = (cx / map_width) * world_width
         y = (cy / map_height) * world_height
         return x, y
+
 
 
 class Edge:

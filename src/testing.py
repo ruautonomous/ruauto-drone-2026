@@ -10,7 +10,7 @@ from utils.geofence import Geofence
 import helper.motor_test as motor_test
 import helper.servo_test as servo_test 
 from helper.file_reader import read_file
-
+from missions.packagedrop import PackageDrop
 from missions.waypointnavigation import WaypointNavigation
 from missions.targetlocalization import TargetLocalization
 

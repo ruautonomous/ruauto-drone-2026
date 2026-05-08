@@ -36,7 +36,8 @@ class PackageDrop:
         pass
 
     async def upload_mission(self, rtl: bool = True):
-        asyncio.create_task(self.camera())
+        #asyncio.create_task(self.camera())
+        asyncio.create_task(self.sim_camera())
         asyncio.create_task(self.movement_mission(rtl))
         pass
 
@@ -94,6 +95,23 @@ class PackageDrop:
                 return (x, y, r)
         
         return None
+    async def sim_camera(self):
+        cap = cv2.VideoCapture("drone.sdp", cv2.CAP_FFMPEG)
+
+        if not cap.isOpened():
+            print("CRITICAL ERROR: Cannot open camera.")
+            exit()
+
+        print("Camera connected! Waiting for frames...")
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("Can't receive frame. Is Gazebo streaming?")
+                break
+            else:
+                self.set_camera_frame(frame)
+            await asyncio.sleep(1)
 
     async def camera(self):
         cam_id = 0
