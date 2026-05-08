@@ -2,6 +2,7 @@ import asyncio
 from ultralytics import YOLO
 from pymavlink import mavutil
 import cv2
+import cv2
 from pymavlink.dialects.v20 import common
 import math
 import numpy as np
@@ -9,6 +10,8 @@ import numpy as np
 from pyparsing import results
 
 from helper.math_funcs import calculate3Ddist, haversine_distance
+from ultralytics import YOLO
+
 from utils.drone import Drone, DroneProperties
 from utils.takeoff import *
 from utils.speed import change_speed
@@ -61,7 +64,51 @@ class TargetLocalization:
         if rtl:
             await return_to_launch(drone=self.drone)
         pass
-        
+
+    async def gcp_mission(self, frame):
+        model = YOLO("yolov26n.pt")
+        results = model.track(source=frame, stream=True)
+        ordered_pairs = []
+        for r in results:
+            if r.boxes.id is not None:
+                boxes = r.boxes.xyxy.cpu().numpy()
+                track_ids = r.boxes.id.cpu().numpy()
+                for box, track_id in zip(boxes, track_ids):
+                    drone_position = await self.drone.get_position_deg()  # latitude, longitude, altitude
+                    drone_heading = await self.drone.get_heading()
+                    coords = serve_object_coords(box, frame.shape, drone_position["lat"], drone_position["long"],
+                                                 drone_position["alt"], drone_heading)
+
+                    ordered_pairs.append(coords)
+        current_position = await self.drone.get_position_deg()
+        closest_node = (np.inf, np.inf)
+        arranged_graph = []  # Changed to a list for mutability
+
+        # Make a mutable copy of ordered_pairs if you intend to modify it
+        ordered_points_to_process = list(ordered_pairs)
+
+        for j in range(math.factorial(len(ordered_points_to_process))):
+            if not ordered_points_to_process:
+                break  # No more points to process
+
+            closest_node_current_iteration = None
+            min_distance = float('inf')
+
+            for i in ordered_points_to_process:
+                print(f"FROM TARGETLOCALIZATION: i = {i}")
+                distance_to_i = haversine_distance(i, current_position)
+                if distance_to_i < min_distance:
+                    min_distance = distance_to_i
+                    closest_node_current_iteration = i
+
+            if closest_node_current_iteration is not None:
+                arranged_graph.append(closest_node_current_iteration)
+                ordered_points_to_process.remove(
+                    closest_node_current_iteration)  # Correct way to remove an element from a list
+                current_position = closest_node_current_iteration
+            else:
+                break  # Should not happen if ordered_points_to_process is not empty
+        return arranged_graph
     async def camera(self):
         cam_id = 0
 
@@ -125,104 +172,12 @@ class TargetLocalization:
 
         reposition_velocity(self.drone, vx=vx, vy=vy, vz=vz)
 
-    def checkered_detection():
-    # Load trained YOLO model
-        model = YOLO("checkered_detector.pt")   # your trained weights
+def pixel_to_world(cx, cy, map_width, map_height, world_width, world_height):
+        x = (cx / map_width) * world_width
+        y = (cy / map_height) * world_height
+        return x, y
 
 
-        # Load map image
-        image_path = "map.png"
-        image = cv2.imread(image_path)
-
-        # Run detection
-        results = model(image)
-
-        locations = []
-
-        for r in results:
-            boxes = r.boxes.xyxy.cpu().numpy()
-            classes = r.boxes.cls.cpu().numpy()
-
-            for box, cls in zip(boxes, classes):
-                x1, y1, x2, y2 = box
-
-                # center location of detected square
-                cx = int((x1 + x2) / 2)
-                cy = int((y1 + y2) / 2)
-
-                locations.append((cx, cy))
-
-                # draw bounding box
-                cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), (0,255,0), 2)
-                cv2.circle(image, (cx,cy), 4, (0,0,255), -1)
-
-                print(f"Checkered square at: ({cx}, {cy})")
-
-        # Show result
-        cv2.imshow("Detections", image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-        print("All square locations:", locations)
-        return locations
-
-    def pixel_to_world(cx, cy, map_width, map_height, world_width, world_height):
-            x = (cx / map_width) * world_width
-            y = (cy / map_height) * world_height
-            return x, y
-    async def yolov8n(self, frame):
-        model = YOLO("yolov26n.pt")
-
-        # Don't know whats the image path for yolo8?
-        image = cv2.imread(frame)
-
-        # Run detection
-        results =  model.track(source= image,stream=True)
-        ordered_pairs = []
-        for r in results:
-            if r.boxes.id is not None:
-                boxes = r.boxes.xyxy.cpu().numpy()
-                track_ids = r.boxes.id.cpu().numpy()
-                for box, track_id in zip(boxes, track_ids):
-
-                    drone_position = await self.drone.get_position_deg() # latitude, longitude, altitude
-                    drone_heading = await self.drone.get_heading()
-                    coords = serve_object_coords(box, image.shape, drone_position["lat"], drone_position["long"], drone_position["alt"], drone_heading)
-                    
-                    ordered_pairs.append(coords)
-
-        current_position = [1,0]
-        print(current_position[0])
-
-
-        closest_node = (1000,1000)
-        arranged_graph = [] # Changed to a list for mutability
-
-        # Make a mutable copy of ordered_pairs if you intend to modify it
-        ordered_points_to_process = list(ordered_pairs)
-
-
-        for j in range(math.factorial(len(ordered_points_to_process))):
-            if not ordered_points_to_process:
-                break # No more points to process
-
-            closest_node_current_iteration = None
-            min_distance = float('inf')
-
-            for i in ordered_points_to_process:
-                print(f"FROM TARGETLOCALIZATION: i = {i}")
-                distance_to_i = haversine_distance(i, current_position)
-                if distance_to_i < min_distance:
-                    min_distance = distance_to_i
-                    closest_node_current_iteration = i
-
-            if closest_node_current_iteration is not None:
-                arranged_graph.append(closest_node_current_iteration)
-                ordered_points_to_process.remove(closest_node_current_iteration) # Correct way to remove an element from a list
-                current_position = closest_node_current_iteration
-            else:
-                break # Should not happen if ordered_points_to_process is not empty
-        return arranged_graph
 
     class Edge:
         def __init__(self, u, v, weight):
