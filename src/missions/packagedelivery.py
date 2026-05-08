@@ -30,21 +30,21 @@ class PackageDelivery:
         self.drop_loc = [float(drop_loc[0]), float(drop_loc[1])]
 
         try:
-            self.servos=[1,3]
-            # self.servos = [(str(config['servos'])).removesuffix('\n').split(',')[0],(str(config['servos'])).removesuffix('\n').split(',')[1]]
-            # print(f'servo nums for package delivery are {self.servos}')
+            # self.servos=[1,3]
+            self.servos = [(str(config['servos'])).removesuffix('\n').split(',')[0],(str(config['servos'])).removesuffix('\n').split(',')[1]]
+            print(f'servo nums for package delivery are {self.servos}')
             # shitty code. im writing this at night i hope it works lol 
         except:
             self.servos = [1,3]
 
     async def upload_mission(self, rtl:bool = True):
-        #await takeoff(drone=self.drone, target_alt=self.alt) 
+        await takeoff(drone=self.drone, target_alt=self.alt) 
         #await reposition_gimbal(drone=self.drone, pitch=-90)
-        #await reposition_drone_deg(drone=self.drone, coordinates=self.drop_loc)
+        await reposition_drone_deg(drone=self.drone, coordinates=self.drop_loc)
         #asyncio.create_task(self.camera())
-        await self.bullseye_mission()
+        # await self.bullseye_mission()
         '''IMAGING CODE HERE!!!'''
-        await self.drop_spool(servos=None, sleep_time=60) # allowing 60 seconds to unravel spool. change this if tests are done
+        # await self.drop_spool(servos=None, sleep_time=60) # allowing 60 seconds to unravel spool. change this if tests are done
         '''
         if rtl:
             await return_to_launch(self.drone)

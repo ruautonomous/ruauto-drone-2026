@@ -1,4 +1,4 @@
 drop_loc=40.5184626,-74.4315182
-drop_alt=5
+drop_alt=1.5
 unload_alt=5
 servos=1,2
