@@ -178,15 +178,15 @@ def pixel_to_world(cx, cy, map_width, map_height, world_width, world_height):
         return x, y
 
 
+'''
+class Edge:
+    def __init__(self, u, v, weight):
+        self.u = u
+        self.v = v
+        self.weight = weight
 
-    class Edge:
-        def __init__(self, u, v, weight):
-            self.u = u
-            self.v = v
-            self.weight = weight
-
-        def __lt__(self, other):
-            return self.weight < other.weight
+    def __lt__(self, other):
+        return self.weight < other.weight
 
     def cost_edges(arranged_graph):
         n = len(arranged_graph)
@@ -229,3 +229,4 @@ def pixel_to_world(cx, cy, map_width, map_height, world_width, world_height):
             print(e.u, "-", e.v, ":", e.weight)
 
         print("Total cost:", cost)
+'''
