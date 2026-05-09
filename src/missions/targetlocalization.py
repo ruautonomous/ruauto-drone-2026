@@ -52,6 +52,7 @@ class TargetLocalization:
     LAT_METERS_COEFF_C = 1.175
     # ~0.11 m in latitude degrees, enough to avoid duplicate lane endpoints from float drift.
     LANE_LAT_TOLERANCE_DEG = 1e-6
+    LANE_LONG_TOLERANCE_DEG = 1e-6
 
     def __init__(self, drone: Drone, initFile: str = None):
         self.drone = drone
@@ -73,27 +74,25 @@ class TargetLocalization:
 
     async def lawnmower_search(self, lane_spacing_meters: float = 10):
         """
-        Fly a simple lawnmower sweep across the geofence bounding rectangle.
+        Fly a lawnmower sweep inside the provided geofence polygon.
 
-        The geofence points are reduced to min/max latitude and longitude bounds,
-        then traversed in alternating left-to-right/right-to-left lanes separated
-        by `lane_spacing_meters`. If fewer than two geofence points are provided,
-        the search is skipped.
+        Lanes are generated from min/max latitude and then clipped per-lane to
+        polygon edge intersections, so each traversed segment stays within the
+        given coordinates. If insufficient geofence points are provided, the
+        search is skipped.
         """
         if lane_spacing_meters <= 0:
             raise ValueError("lane_spacing_meters must be greater than 0.")
 
-        if self.bounding is None or len(self.bounding) < 2:
+        if self.bounding is None or len(self.bounding) < 3:
             print("Lawnmower search skipped: insufficient geofence points.")
             return
 
-        lats = [point[0] for point in self.bounding]
-        longs = [point[1] for point in self.bounding]
+        polygon_points = self._get_ordered_polygon_points(self.bounding)
+        lats = [point[0] for point in polygon_points]
 
         min_lat = min(lats)
         max_lat = max(lats)
-        min_long = min(longs)
-        max_long = max(longs)
 
         center_lat_rad = math.radians((min_lat + max_lat) / 2.0)
         meters_per_degree_lat = (
@@ -117,6 +116,11 @@ class TargetLocalization:
             lane_lats.append(max_lat)
 
         for lane_idx, lat in enumerate(lane_lats):
+            lane_bounds = self._get_lane_longitude_bounds(lat, polygon_points)
+            if lane_bounds is None:
+                continue
+
+            min_long, max_long = lane_bounds
             if lane_idx % 2 == 0:
                 start_long = min_long
                 end_long = max_long
@@ -126,6 +130,52 @@ class TargetLocalization:
 
             await reposition_drone_deg(drone=self.drone, coordinates=[lat, start_long, search_alt])
             await reposition_drone_deg(drone=self.drone, coordinates=[lat, end_long, search_alt])
+
+    def _get_ordered_polygon_points(self, points):
+        center_lat = sum(point[0] for point in points) / len(points)
+        center_long = sum(point[1] for point in points) / len(points)
+        return sorted(
+            points,
+            key=lambda point: math.atan2(point[0] - center_lat, point[1] - center_long)
+        )
+
+    def _get_lane_longitude_bounds(self, lane_lat: float, polygon_points):
+        intersections = []
+        lat_tol = self.LANE_LAT_TOLERANCE_DEG
+        long_tol = self.LANE_LONG_TOLERANCE_DEG
+        size = len(polygon_points)
+
+        for idx in range(size):
+            lat_1, long_1 = polygon_points[idx]
+            lat_2, long_2 = polygon_points[(idx + 1) % size]
+
+            if abs(lat_2 - lat_1) <= lat_tol:
+                if abs(lane_lat - lat_1) <= lat_tol:
+                    intersections.extend([long_1, long_2])
+                continue
+
+            lower_lat = min(lat_1, lat_2) - lat_tol
+            upper_lat = max(lat_1, lat_2) + lat_tol
+            if lane_lat < lower_lat or lane_lat > upper_lat:
+                continue
+
+            t = (lane_lat - lat_1) / (lat_2 - lat_1)
+            intersection_long = long_1 + t * (long_2 - long_1)
+            intersections.append(intersection_long)
+
+        if len(intersections) < 2:
+            return None
+
+        intersections.sort()
+        unique_intersections = [intersections[0]]
+        for candidate in intersections[1:]:
+            if abs(candidate - unique_intersections[-1]) > long_tol:
+                unique_intersections.append(candidate)
+
+        if len(unique_intersections) < 2:
+            return None
+
+        return [unique_intersections[0], unique_intersections[-1]]
 
     async def gcp_mission(self, frame):
         model = YOLO("yolov26n.pt")
