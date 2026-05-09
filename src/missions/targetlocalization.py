@@ -60,10 +60,55 @@ class TargetLocalization:
         await takeoff(drone=self.drone, target_alt = self.MIN_ALT_METERS) # set takeoff alt to whatever imaging wants
         await reposition_gimbal(drone=self.drone, pitch=-90)
         asyncio.create_task(self.camera())
-        await reposition_drone_deg(drone=self.drone, coordinates=self.bounding[0]) # relocating drone to first bounding box point
+        await self.lawnmower_search()
         if rtl:
             await return_to_launch(drone=self.drone)
         pass
+
+    async def lawnmower_search(self, lane_spacing_meters: float = 10):
+        if self.bounding is None or len(self.bounding) < 2:
+            print("Lawnmower search skipped: insufficient geofence points.")
+            return
+
+        lats = [point[0] for point in self.bounding]
+        longs = [point[1] for point in self.bounding]
+
+        min_lat = min(lats)
+        max_lat = max(lats)
+        min_long = min(longs)
+        max_long = max(longs)
+
+        center_lat = (min_lat + max_lat) / 2
+        meters_per_degree_lat = 111320.0
+        meters_per_degree_long = 111320.0 * math.cos(math.radians(center_lat))
+        if abs(meters_per_degree_long) < 1e-9:
+            meters_per_degree_long = 1e-9
+
+        lane_spacing_deg_lat = lane_spacing_meters / meters_per_degree_lat
+        if lane_spacing_deg_lat <= 0:
+            lane_spacing_deg_lat = (max_lat - min_lat) if max_lat != min_lat else 1e-6
+
+        current_pos = await self.drone.get_position_deg()
+        search_alt = max(current_pos["alt"], self.MIN_ALT_METERS)
+
+        lane_lats = []
+        lane_lat = min_lat
+        while lane_lat < max_lat:
+            lane_lats.append(lane_lat)
+            lane_lat += lane_spacing_deg_lat
+        if len(lane_lats) == 0 or lane_lats[-1] != max_lat:
+            lane_lats.append(max_lat)
+
+        for lane_idx, lat in enumerate(lane_lats):
+            if lane_idx % 2 == 0:
+                start_long = min_long
+                end_long = max_long
+            else:
+                start_long = max_long
+                end_long = min_long
+
+            await reposition_drone_deg(drone=self.drone, coordinates=[lat, start_long, search_alt])
+            await reposition_drone_deg(drone=self.drone, coordinates=[lat, end_long, search_alt])
 
     async def gcp_mission(self, frame):
         model = YOLO("yolov26n.pt")
