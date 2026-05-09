@@ -107,10 +107,10 @@ class TargetLocalization:
         current_pos = await self.drone.get_position_deg()
         search_alt = max(current_pos["alt"], self.MIN_ALT_METERS)
 
-        lane_lats = []
         lane_tolerance = self.LANE_LAT_TOLERANCE_DEG
-        lane_lat = min_lat
-        while lane_lat <= max_lat + lane_tolerance:
+        lane_lats = [min_lat]
+        lane_lat = min_lat + lane_spacing_deg_lat
+        while lane_lat < max_lat - lane_tolerance:
             lane_lats.append(lane_lat)
             lane_lat += lane_spacing_deg_lat
         if abs(lane_lats[-1] - max_lat) > lane_tolerance:
