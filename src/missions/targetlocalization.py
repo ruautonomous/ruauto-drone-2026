@@ -66,6 +66,14 @@ class TargetLocalization:
         pass
 
     async def lawnmower_search(self, lane_spacing_meters: float = 10):
+        """
+        Fly a simple lawnmower sweep across the geofence bounding rectangle.
+
+        The geofence points are reduced to min/max latitude and longitude bounds,
+        then traversed in alternating left-to-right/right-to-left lanes separated
+        by `lane_spacing_meters`. If fewer than two geofence points are provided,
+        the search is skipped.
+        """
         if self.bounding is None or len(self.bounding) < 2:
             print("Lawnmower search skipped: insufficient geofence points.")
             return
@@ -78,11 +86,7 @@ class TargetLocalization:
         min_long = min(longs)
         max_long = max(longs)
 
-        center_lat = (min_lat + max_lat) / 2
         meters_per_degree_lat = 111320.0
-        meters_per_degree_long = 111320.0 * math.cos(math.radians(center_lat))
-        if abs(meters_per_degree_long) < 1e-9:
-            meters_per_degree_long = 1e-9
 
         lane_spacing_deg_lat = lane_spacing_meters / meters_per_degree_lat
         if lane_spacing_deg_lat <= 0:
@@ -96,7 +100,7 @@ class TargetLocalization:
         while lane_lat < max_lat:
             lane_lats.append(lane_lat)
             lane_lat += lane_spacing_deg_lat
-        if len(lane_lats) == 0 or lane_lats[-1] != max_lat:
+        if len(lane_lats) == 0 or abs(lane_lats[-1] - max_lat) > 1e-9:
             lane_lats.append(max_lat)
 
         for lane_idx, lat in enumerate(lane_lats):
