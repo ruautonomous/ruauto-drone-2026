@@ -46,6 +46,12 @@ class TargetLocalization:
     PIXEL_TOLERANCE = 20     # pixels deadband
     GAIN = 0.002             # velocity scaling factor
     MAX_VEL = 1.0            # m/s cap
+    # Latitude meters-per-degree approximation coefficients (WGS84-style series).
+    LAT_METERS_COEFF_A = 111132.92
+    LAT_METERS_COEFF_B = 559.82
+    LAT_METERS_COEFF_C = 1.175
+    # ~0.11 m in latitude degrees, enough to avoid duplicate lane endpoints from float drift.
+    LANE_LAT_TOLERANCE_DEG = 1e-6
 
     def __init__(self, drone: Drone, initFile: str = None):
         self.drone = drone
@@ -91,9 +97,9 @@ class TargetLocalization:
 
         center_lat_rad = math.radians((min_lat + max_lat) / 2.0)
         meters_per_degree_lat = (
-            111132.92
-            - 559.82 * math.cos(2 * center_lat_rad)
-            + 1.175 * math.cos(4 * center_lat_rad)
+            self.LAT_METERS_COEFF_A
+            - self.LAT_METERS_COEFF_B * math.cos(2 * center_lat_rad)
+            + self.LAT_METERS_COEFF_C * math.cos(4 * center_lat_rad)
         )
 
         lane_spacing_deg_lat = lane_spacing_meters / meters_per_degree_lat
@@ -102,7 +108,7 @@ class TargetLocalization:
         search_alt = max(current_pos["alt"], self.MIN_ALT_METERS)
 
         lane_lats = []
-        lane_tolerance = 1e-6
+        lane_tolerance = self.LANE_LAT_TOLERANCE_DEG
         lane_lat = min_lat
         while lane_lat <= max_lat + lane_tolerance:
             lane_lats.append(lane_lat)
