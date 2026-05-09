@@ -74,6 +74,9 @@ class TargetLocalization:
         by `lane_spacing_meters`. If fewer than two geofence points are provided,
         the search is skipped.
         """
+        if lane_spacing_meters <= 0:
+            raise ValueError("lane_spacing_meters must be greater than 0.")
+
         if self.bounding is None or len(self.bounding) < 2:
             print("Lawnmower search skipped: insufficient geofence points.")
             return
@@ -94,8 +97,6 @@ class TargetLocalization:
         )
 
         lane_spacing_deg_lat = lane_spacing_meters / meters_per_degree_lat
-        if lane_spacing_deg_lat <= 0:
-            lane_spacing_deg_lat = 10.0 / meters_per_degree_lat
 
         current_pos = await self.drone.get_position_deg()
         search_alt = max(current_pos["alt"], self.MIN_ALT_METERS)
@@ -106,7 +107,7 @@ class TargetLocalization:
         while lane_lat <= max_lat + lane_tolerance:
             lane_lats.append(lane_lat)
             lane_lat += lane_spacing_deg_lat
-        if len(lane_lats) == 0 or abs(lane_lats[-1] - max_lat) > lane_tolerance:
+        if abs(lane_lats[-1] - max_lat) > lane_tolerance:
             lane_lats.append(max_lat)
 
         for lane_idx, lat in enumerate(lane_lats):
