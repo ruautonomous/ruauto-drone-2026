@@ -46,6 +46,13 @@ class TargetLocalization:
     PIXEL_TOLERANCE = 20     # pixels deadband
     GAIN = 0.002             # velocity scaling factor
     MAX_VEL = 1.0            # m/s cap
+    # Latitude meters-per-degree approximation coefficients (all in meters).
+    LAT_METERS_COEFF_A = 111132.92
+    LAT_METERS_COEFF_B = 559.82
+    LAT_METERS_COEFF_C = 1.175
+    # ~0.11 m in latitude degrees, enough to avoid duplicate lane endpoints from float drift.
+    LANE_LAT_TOLERANCE_DEG = 1e-6
+    LANE_LONG_TOLERANCE_DEG = 1e-6
 
     def __init__(self, drone: Drone, initFile: str = None):
         self.drone = drone
@@ -60,7 +67,8 @@ class TargetLocalization:
         await takeoff(drone=self.drone, target_alt = self.MIN_ALT_METERS) # set takeoff alt to whatever imaging wants
         await reposition_gimbal(drone=self.drone, pitch=-90)
         asyncio.create_task(self.camera())
-        await reposition_drone_deg(drone=self.drone, coordinates=self.bounding[0]) # relocating drone to first bounding box point
+        # await reposition_drone_deg(drone=self.drone, coordinates=self.bounding[0]) # relocating drone to first bounding box point
+        await self.lawnmower_search()
         if rtl:
             await return_to_launch(drone=self.drone)
         pass
@@ -109,6 +117,114 @@ class TargetLocalization:
             else:
                 break  # Should not happen if ordered_points_to_process is not empty
         return arranged_graph
+    
+	
+    async def lawnmower_search(self, lane_spacing_meters: float = 10):
+        """
+        Fly a lawnmower sweep inside the provided geofence polygon.
+        Assumes geofence points form a convex polygon (e.g., 4-point bounding area).
+        Lanes are generated from min/max latitude and then clipped per-lane to
+        polygon edge intersections, so each traversed segment stays within the
+        given coordinates. If insufficient geofence points are provided, the
+        search is skipped.
+        """
+        if lane_spacing_meters <= 0:
+            raise ValueError("lane_spacing_meters must be greater than 0.")
+
+        if self.bounding is None or len(self.bounding) < 3:
+            print("Lawnmower search skipped: insufficient geofence points.")
+            return
+
+        polygon_points = self._get_ordered_polygon_points(self.bounding)
+        lats = [point[0] for point in polygon_points]
+
+        min_lat = min(lats)
+        max_lat = max(lats)
+
+        center_lat_rad = math.radians((min_lat + max_lat) / 2.0)
+        meters_per_degree_lat = (
+            self.LAT_METERS_COEFF_A
+            - self.LAT_METERS_COEFF_B * math.cos(2 * center_lat_rad)
+            + self.LAT_METERS_COEFF_C * math.cos(4 * center_lat_rad)
+        )
+
+        lane_spacing_deg_lat = lane_spacing_meters / meters_per_degree_lat
+
+        current_pos = await self.drone.get_position_deg()
+        search_alt = max(current_pos["alt"], self.MIN_ALT_METERS)
+
+        lane_lats = [min_lat]
+        lane_lat = min_lat + lane_spacing_deg_lat
+        while lane_lat < max_lat - self.LANE_LAT_TOLERANCE_DEG:
+            lane_lats.append(lane_lat)
+            lane_lat += lane_spacing_deg_lat
+        if abs(lane_lats[-1] - max_lat) > self.LANE_LAT_TOLERANCE_DEG:
+            lane_lats.append(max_lat)
+
+        for lane_idx, lat in enumerate(lane_lats):
+            lane_bounds = self._get_lane_longitude_bounds(lat, polygon_points)
+            if lane_bounds is None:
+                continue
+
+            min_long, max_long = lane_bounds
+            if lane_idx % 2 == 0:
+                start_long = min_long
+                end_long = max_long
+            else:
+                start_long = max_long
+                end_long = min_long
+
+            await reposition_drone_deg(drone=self.drone, coordinates=[lat, start_long, search_alt])
+            await reposition_drone_deg(drone=self.drone, coordinates=[lat, end_long, search_alt])
+
+    def _get_ordered_polygon_points(self, points):
+        center_lat = sum(point[0] for point in points) / len(points)
+        center_long = sum(point[1] for point in points) / len(points)
+        return sorted(
+            points,
+            key=lambda point: math.atan2(point[0] - center_lat, point[1] - center_long)
+        )
+
+    def _get_lane_longitude_bounds(self, lane_lat: float, polygon_points):
+        intersections = []
+        lat_tol = self.LANE_LAT_TOLERANCE_DEG
+        long_tol = self.LANE_LONG_TOLERANCE_DEG
+        size = len(polygon_points)
+
+        for idx in range(size):
+            lat_1, long_1 = polygon_points[idx]
+            lat_2, long_2 = polygon_points[(idx + 1) % size]
+
+            if abs(lat_2 - lat_1) <= lat_tol:
+                if abs(lane_lat - lat_1) <= lat_tol:
+                    min_long = min(long_1, long_2)
+                    max_long = max(long_1, long_2)
+                    intersections.extend([min_long, max_long])
+                continue
+
+            lower_lat = min(lat_1, lat_2) - lat_tol
+            upper_lat = max(lat_1, lat_2) + lat_tol
+            if lane_lat < lower_lat or lane_lat > upper_lat:
+                continue
+
+            t = (lane_lat - lat_1) / (lat_2 - lat_1)
+            intersection_long = long_1 + t * (long_2 - long_1)
+            intersections.append(intersection_long)
+
+        if len(intersections) < 2:
+            return None
+
+        intersections.sort()
+        unique_intersections = [intersections[0]]
+        for candidate in intersections[1:]:
+            if abs(candidate - unique_intersections[-1]) > long_tol:
+                unique_intersections.append(candidate)
+
+        if len(unique_intersections) < 2:
+            return None
+
+        return [unique_intersections[0], unique_intersections[-1]]
+
     async def camera(self):
         cam_id = 0
 

@@ -7,3 +7,4 @@ pymavlink
 MAVProxy
 empy==3.3.4
 ultralytics
+opencv-python
