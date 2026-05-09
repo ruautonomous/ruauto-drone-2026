@@ -46,7 +46,7 @@ class TargetLocalization:
     PIXEL_TOLERANCE = 20     # pixels deadband
     GAIN = 0.002             # velocity scaling factor
     MAX_VEL = 1.0            # m/s cap
-    # Latitude meters-per-degree approximation coefficients (WGS84-style series).
+    # Latitude meters-per-degree approximation coefficients (all in meters).
     LAT_METERS_COEFF_A = 111132.92
     LAT_METERS_COEFF_B = 559.82
     LAT_METERS_COEFF_C = 1.175
@@ -76,6 +76,7 @@ class TargetLocalization:
         """
         Fly a lawnmower sweep inside the provided geofence polygon.
 
+        Assumes geofence points form a convex polygon (e.g., 4-point bounding area).
         Lanes are generated from min/max latitude and then clipped per-lane to
         polygon edge intersections, so each traversed segment stays within the
         given coordinates. If insufficient geofence points are provided, the
@@ -106,13 +107,12 @@ class TargetLocalization:
         current_pos = await self.drone.get_position_deg()
         search_alt = max(current_pos["alt"], self.MIN_ALT_METERS)
 
-        lane_tolerance = self.LANE_LAT_TOLERANCE_DEG
         lane_lats = [min_lat]
         lane_lat = min_lat + lane_spacing_deg_lat
-        while lane_lat < max_lat - lane_tolerance:
+        while lane_lat < max_lat - self.LANE_LAT_TOLERANCE_DEG:
             lane_lats.append(lane_lat)
             lane_lat += lane_spacing_deg_lat
-        if abs(lane_lats[-1] - max_lat) > lane_tolerance:
+        if abs(lane_lats[-1] - max_lat) > self.LANE_LAT_TOLERANCE_DEG:
             lane_lats.append(max_lat)
 
         for lane_idx, lat in enumerate(lane_lats):
@@ -151,7 +151,9 @@ class TargetLocalization:
 
             if abs(lat_2 - lat_1) <= lat_tol:
                 if abs(lane_lat - lat_1) <= lat_tol:
-                    intersections.extend([long_1, long_2])
+                    min_long = min(long_1, long_2)
+                    max_long = max(long_1, long_2)
+                    intersections.extend([min_long, max_long])
                 continue
 
             lower_lat = min(lat_1, lat_2) - lat_tol
