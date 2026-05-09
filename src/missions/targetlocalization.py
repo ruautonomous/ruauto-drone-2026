@@ -86,21 +86,27 @@ class TargetLocalization:
         min_long = min(longs)
         max_long = max(longs)
 
-        meters_per_degree_lat = 111320.0
+        center_lat_rad = math.radians((min_lat + max_lat) / 2.0)
+        meters_per_degree_lat = (
+            111132.92
+            - 559.82 * math.cos(2 * center_lat_rad)
+            + 1.175 * math.cos(4 * center_lat_rad)
+        )
 
         lane_spacing_deg_lat = lane_spacing_meters / meters_per_degree_lat
         if lane_spacing_deg_lat <= 0:
-            lane_spacing_deg_lat = (max_lat - min_lat) if max_lat != min_lat else 1e-6
+            lane_spacing_deg_lat = 10.0 / meters_per_degree_lat
 
         current_pos = await self.drone.get_position_deg()
         search_alt = max(current_pos["alt"], self.MIN_ALT_METERS)
 
         lane_lats = []
+        lane_tolerance = 1e-6
         lane_lat = min_lat
-        while lane_lat < max_lat:
+        while lane_lat <= max_lat + lane_tolerance:
             lane_lats.append(lane_lat)
             lane_lat += lane_spacing_deg_lat
-        if len(lane_lats) == 0 or abs(lane_lats[-1] - max_lat) > 1e-9:
+        if len(lane_lats) == 0 or abs(lane_lats[-1] - max_lat) > lane_tolerance:
             lane_lats.append(max_lat)
 
         for lane_idx, lat in enumerate(lane_lats):
