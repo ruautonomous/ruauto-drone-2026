@@ -14,6 +14,8 @@ from helper.file_reader import read_config_file
 
 class PackageRecovery:
     
+    HOOK_SLEEP = 10
+
     def __init__(self, drone: Drone, initFile = None):
         self.drone = drone
         self.file = initFile
@@ -32,15 +34,20 @@ class PackageRecovery:
         await takeoff(drone=self.drone, target_alt=self.drone.target_alt)
         await reposition_drone_deg(drone=self.drone, coordinates=self.pickup_loc)
         await self.turn_hook()
+        await reposition_velocity(drone=self.drone, vx= 1, vz = 1) # temporary since we dont have ML code yet
+        await self.turn_hook(opposite=True, sleep= (0.7 * self.HOOK_SLEEP))
+
+        if rtl:
+            return_to_launch(drone = self.drone)
         pass
     
-    async def turn_hook(self):
+    async def turn_hook(self, opposite=False, sleep=HOOK_SLEEP):
         '''note to self: on the claw mechanism, put a piece of tape next to every servo and write the channel number it goes to'''
         asyncio.gather(
         await set_servo(drone=self.drone, servo_num=1, servo_value=1.3*SERVO_TRIM, sleep_wait=0),
         await set_servo(drone=self.drone, servo_num=3, servo_value=0.7*SERVO_TRIM, sleep_wait=0)
         )
-        await asyncio.sleep(2)
+        await asyncio.sleep(sleep)
         asyncio.gather(
         await reset_servo(drone=self.drone, servo_num=1),
         await reset_servo(drone=self.drone, servo_num=3)

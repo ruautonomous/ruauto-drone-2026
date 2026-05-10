@@ -23,7 +23,7 @@ async def main():
     drone = Drone()
     drone.initialize_drone(parametersFile='info_files/settings.txt', configFile='info_files/config.txt')
     # mission = Mission(drone=drone, waypointsFile='info_files/waypoints.txt')
-    #fence = Geofence(drone=drone, geofenceFile=config['fenceFile'])
+    fence = Geofence(drone=drone, geofenceFile=config['fenceFile'])
     
     await asyncio.gather(
         drone.start_background_processes(), 
@@ -70,7 +70,7 @@ async def mission_picker(drone: Drone):
         read_file = mission_files[f'{current_mission}'] if current_mission < 10 else -1
 
         mission_rtl = True if missions.__len__() == 0 else False # if the # of missions remaining is zero, then we return to launch
-        
+        print(f'mission.__len__() = {missions.__len__()} and rtl var = {mission_rtl}')
         match(current_mission):
             case 0:
                 pass

@@ -39,7 +39,7 @@ class PackageDelivery:
 
     async def upload_mission(self, rtl:bool = True):
         await takeoff(drone=self.drone, target_alt=self.alt) 
-        #await reposition_gimbal(drone=self.drone, pitch=-90)
+        await reposition_gimbal(drone=self.drone, pitch=-90)
         await reposition_drone_deg(drone=self.drone, coordinates=self.drop_loc)
         #asyncio.create_task(self.camera())
         # await self.bullseye_mission()

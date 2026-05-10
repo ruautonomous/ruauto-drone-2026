@@ -47,7 +47,7 @@ class   WaypointNavigation:
             waypoints = self.custom_points
         waypoints = await self.get_sorted_waypoints(waypoints)
         await self.mission_handler.upload_mission(waypoints=waypoints, rtl=rtl)
-        await self.mission_handler.begin_mission()
+        await self.mission_handler.begin_mission(rtl)
         
         
     async def test_point_sorting(self, waypointsFile = None):

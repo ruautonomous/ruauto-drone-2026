@@ -1,8 +1,8 @@
 connection=tcp:127.0.0.1:5763
 #connection=/dev/ttyTHS1
 baud=115200
-mission=3
-fenceFile=info_files/fences/livifence.txt
+mission=1,4
+fenceFile=info_files/fences/testingfence.txt
 # comments shouldnt get read
 # mission numbers
 # 1 - waypoint nav task
