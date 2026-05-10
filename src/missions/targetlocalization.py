@@ -119,7 +119,7 @@ class TargetLocalization:
         return arranged_graph
     
 	
-    async def lawnmower_search(self, lane_spacing_meters: float = 10):
+    async def lawnmower_search(self, lane_spacing_meters: float = 5):
         """
         Fly a lawnmower sweep inside the provided geofence polygon.
         Assumes geofence points form a convex polygon (e.g., 4-point bounding area).
