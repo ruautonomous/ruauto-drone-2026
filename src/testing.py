@@ -29,6 +29,8 @@ async def main():
     await asyncio.gather(
         drone.start_background_processes(), 
         drone.watch_for_heartbeat(),
+        #takeoff(drone, 10)
+
         # targetloc.begin_dummy_mission()
         #motor_test.test_all_motors_multiple(drone=drone, num_times=3, throttle_step=5, throttle_value=20)
         # servo_test.full_spin_servo(drone, 1)
@@ -36,8 +38,8 @@ async def main():
         #servo_test.reset_servo(drone=drone, servo_num=1),
         #servo_test.reset_servo(drone=drone, servo_num=3),
         #reset_delivery_servo(drone=drone),
-	servo_test.unravel_spool(drone=drone, servo_num=1, opposite=False, sleep=30),
-        servo_test.unravel_spool(drone=drone, servo_num=3, opposite=True, sleep=30)
+	# servo_test.unravel_spool(drone=drone, servo_num=1, opposite=False, sleep=30),
+    #     servo_test.unravel_spool(drone=drone, servo_num=3, opposite=True, sleep=30)
     )
 
 def file_test():

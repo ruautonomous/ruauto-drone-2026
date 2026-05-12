@@ -1,3 +1,5 @@
 src/missions/__pycache__/
 src/utils/__pycache__/
 src/helper/__pycache__/
+
+.idea
