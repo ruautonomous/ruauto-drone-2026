@@ -29,9 +29,9 @@ class PackageRecovery:
 
     async def upload_mission(self, rtl:bool = True):
 
-        server_sock = self.start_listener()
-        self.server_sock = server_sock
-        self.baseline = await self.set_baseline()
+        #server_sock = self.start_listener()
+        #self.server_sock = server_sock
+        #self.baseline = await self.set_baseline()
         await self.turn_hook(sleep=2)
         '''
         await takeoff(drone=self.drone, target_alt=self.drone.target_alt)
