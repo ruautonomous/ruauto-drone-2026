@@ -39,7 +39,7 @@ class PackageDelivery:
 
     async def upload_mission(self, rtl:bool = True):
         
-        await self.turn_hook(sleep=10)
+        await self.turn_hook(sleep=10, opposite=True)
 
         '''
         await takeoff(drone=self.drone, target_alt=self.alt) 
@@ -57,8 +57,8 @@ class PackageDelivery:
     async def turn_hook(self, opposite=False, sleep=5):
         print('does this fucking drone work? start the fucking servos')
         await asyncio.gather(
-        set_servo(drone=self.drone, servo_num=1, servo_value=1.3*SERVO_TRIM, sleep_wait=0),
-        set_servo(drone=self.drone, servo_num=3, servo_value=0.7*SERVO_TRIM, sleep_wait=0)
+        set_servo(drone=self.drone, servo_num=3, servo_value=1.3*SERVO_TRIM, sleep_wait=0),
+        set_servo(drone=self.drone, servo_num=1, servo_value=0.7*SERVO_TRIM, sleep_wait=0)
         )
         await asyncio.sleep(sleep)
         print('resetting servos')
