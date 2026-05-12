@@ -75,7 +75,8 @@ class PackageRecovery:
         
         log_system(msgname="Load Cell Manager", msg=f"Setting baseline load cell value. Readings used: {readings}")
         return (average/readings.__len__())
-    def start_listener():
+    
+    def start_listener(self):
         UDP_IP = "127.0.0.1"
         UDP_PORT = 5005
 
