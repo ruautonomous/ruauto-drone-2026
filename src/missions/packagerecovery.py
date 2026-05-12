@@ -28,17 +28,20 @@ class PackageRecovery:
         self.pickup_loc = [float(pickup_loc[0]), float(pickup_loc[1])]
 
     async def upload_mission(self, rtl:bool = True):
+
         server_sock = self.start_listener()
         self.server_sock = server_sock
         self.baseline = await self.set_baseline()
+        await self.turn_hook(sleep=2)
+        '''
         await takeoff(drone=self.drone, target_alt=self.drone.target_alt)
         await reposition_drone_deg(drone=self.drone, coordinates=self.pickup_loc)
-        await self.turn_hook()
         await reposition_velocity(drone=self.drone, vx= 1, vz = 1) # temporary since we dont have ML code yet
         await self.turn_hook(opposite=True, sleep= (0.7 * self.HOOK_SLEEP))
 
         if rtl:
             return_to_launch(drone = self.drone)
+        '''
         pass
     
     async def turn_hook(self, opposite=False, sleep=HOOK_SLEEP):

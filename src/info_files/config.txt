@@ -1,11 +1,15 @@
-connection=tcp:127.0.0.1:5763
-#connection=/dev/ttyTHS1
+#connection=tcp:127.0.0.1:5763
+connection=/dev/ttyTHS1
 baud=115200
-mission=4
+mission=6
 fenceFile=info_files/fences/livifence.txt
 # comments shouldnt get read
 # mission numbers
 # 1 - waypoint nav task
 # 2 - time trial
 # 3 - target localization
+# 4 - package drop
+# 5 - package delivery
+# 6 - package recovery
+# 10 - takeoff/land testing mission
 # config.txt contains information about the connection of the drone, mission we are doing, etc...
