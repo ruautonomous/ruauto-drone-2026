@@ -38,18 +38,36 @@ class PackageDelivery:
             self.servos = [1,3]
 
     async def upload_mission(self, rtl:bool = True):
+        
+        await self.turn_hook(sleep=10)
+
+        '''
         await takeoff(drone=self.drone, target_alt=self.alt) 
         await reposition_gimbal(drone=self.drone, pitch=-90)
         await reposition_drone_deg(drone=self.drone, coordinates=self.drop_loc)
         #asyncio.create_task(self.camera())
         # await self.bullseye_mission()
-        '''IMAGING CODE HERE!!!'''
-        # await self.drop_spool(servos=None, sleep_time=60) # allowing 60 seconds to unravel spool. change this if tests are done
-        '''
+        #  # allowing 60 seconds to unravel spool. change this if tests are done
+        
         if rtl:
             await return_to_launch(self.drone)
         pass
         '''
+
+    async def turn_hook(self, opposite=False, sleep=5):
+        print('does this fucking drone work? start the fucking servos')
+        await asyncio.gather(
+        set_servo(drone=self.drone, servo_num=1, servo_value=1.3*SERVO_TRIM, sleep_wait=0),
+        set_servo(drone=self.drone, servo_num=3, servo_value=0.7*SERVO_TRIM, sleep_wait=0)
+        )
+        await asyncio.sleep(sleep)
+        print('resetting servos')
+        asyncio.gather(
+        reset_servo(drone=self.drone, servo_num=1),
+        reset_servo(drone=self.drone, servo_num=3)
+        )
+
+        pass
 
     async def drop_spool(self, servos, sleep_time=10, percent: int = 30):
         for i,servo in enumerate(servos):
