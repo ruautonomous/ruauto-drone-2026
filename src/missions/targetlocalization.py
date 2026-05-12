@@ -74,7 +74,7 @@ class TargetLocalization:
         pass
 
     async def gcp_mission(self, frame):
-        model = YOLO("yolov26n.pt")
+        model = YOLO("yolov26n.onnx")
         results = model.track(source=frame, stream=True)
         ordered_pairs = []
         for r in results:
