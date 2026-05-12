@@ -51,6 +51,7 @@ class PackageRecovery:
         await set_servo(drone=self.drone, servo_num=3, servo_value=0.7*SERVO_TRIM, sleep_wait=0)
         )
         await asyncio.sleep(sleep)
+        print('resetting servos')
         asyncio.gather(
         await reset_servo(drone=self.drone, servo_num=1),
         await reset_servo(drone=self.drone, servo_num=3)
@@ -87,7 +88,7 @@ class PackageRecovery:
         sock.settimeout(0.5)
         return sock
 
-    async def get_current_weight(sock: socket.socket):
+    async def get_current_weight(self, sock: socket.socket):
         """Fetches the most recent broadcasted weight. If after 31 x 0.2 = 6.2 seconds, no data recieved it errors"""
         i=0
         while True:
