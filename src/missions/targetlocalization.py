@@ -101,7 +101,7 @@ class TargetLocalization:
 
             closest_node_current_iteration = None
             min_distance = float('inf')
-
+            #[(5,2), (2,3), (4,5)]
             for i in ordered_points_to_process:
                 print(f"FROM TARGETLOCALIZATION: i = {i}")
                 distance_to_i = haversine_distance(i, current_position)

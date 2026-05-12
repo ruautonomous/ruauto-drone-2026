@@ -14,8 +14,9 @@ from helper.gimbal import reposition_gimbal
 import cv2
 import numpy as np
 import time
+import os
 from typing import Tuple, Optional
-
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "protocol_whitelist;file,rtp,udp"
 class PackageDrop:
 
     def __init__(self, drone: Drone, file):
@@ -38,15 +39,24 @@ class PackageDrop:
     async def upload_mission(self, rtl: bool = True):
         #asyncio.create_task(self.camera())
         asyncio.create_task(self.sim_camera())
-        asyncio.create_task(self.movement_mission(rtl))
+        await asyncio.create_task(self.movement_mission(rtl))
         pass
 
     async def movement_mission(self, rtl: bool = True):
-        await takeoff(drone=self.drone, target_alt = self.takeoff_alt)
-        await reposition_drone_deg(drone=self.drone, coordinates = self.drop_loc)
-        await reposition_gimbal(drone=self.drone, pitch=-90)
+        #swap back if u need to current: 1.  reposition the gimbal 2. takeoff
+
+       #await reposition_gimbal(drone=self.drone, pitch=-90)
+        await takeoff(drone=self.drone, target_alt=self.takeoff_alt)
+        await reposition_drone_deg(drone=self.drone, coordinates=self.drop_loc)
+
+
         print(f'DROP LOC IS {self.drop_loc}')
-        await self.bullseye_mission()
+        is_centered  = False
+        while  not is_centered:
+            is_centered = await self.bullseye_mission()
+            print(is_centered)
+            await asyncio.sleep(0.1)
+
         await self.drop_package()
         if rtl:
             await return_to_launch(drone=self.drone)
@@ -105,13 +115,13 @@ class PackageDrop:
         print("Camera connected! Waiting for frames...")
 
         while True:
-            ret, frame = cap.read()
+            ret, frame = await asyncio.to_thread(cap.read)
             if not ret:
                 print("Can't receive frame. Is Gazebo streaming?")
                 break
             else:
                 self.set_camera_frame(frame)
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.01) #for simulation
 
     async def camera(self):
         cam_id = 0
@@ -207,6 +217,7 @@ class PackageDrop:
         Processes the current frame to detect the bullseye and adjust drone velocity.
         Returns True if the drone is successfully centered, False otherwise.
         """
+        i =0
         # Camera/frame parameters
         frame_width = 640
         frame_height = 480
@@ -218,7 +229,9 @@ class PackageDrop:
             if frame is None:
                 print("No camera frame available")
                 return False
-        
+            if i<20:
+                cv2.imwrite(f"frame_{i}.jpeg", frame)
+                i+=1
             detection_result = self.detect_bullseye(frame)
         
             if detection_result is None:
@@ -229,7 +242,7 @@ class PackageDrop:
             print(f"Bullseye detected at: ({target_x}, {target_y}), radius: {radius}")
         
             # 2. MOVEMENT PHASE - Calculate movement using detected center
-            current_alt = self.drone.get_altitude()
+            current_alt = await self.drone.get_altitude()
             vx, vy, vz, is_centered = self.calculate_movement_to_center(
                 target_x, target_y, frame_width, frame_height
             )
