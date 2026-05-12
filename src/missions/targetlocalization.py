@@ -6,7 +6,7 @@ import cv2
 from pymavlink.dialects.v20 import common
 import math
 import numpy as np
-
+import itertools
 from pyparsing import results
 
 from helper.math_funcs import calculate3Ddist, haversine_distance
@@ -59,6 +59,9 @@ class TargetLocalization:
         self.file = initFile
         self.newest_frame = None
         self.bounding = read_geofence(initFile)
+        self.num_targets = 10
+        self.gcp_squares = []
+        self.unvisited_gcps = []
         pass
 
 
@@ -69,12 +72,17 @@ class TargetLocalization:
         asyncio.create_task(self.camera())
         # await reposition_drone_deg(drone=self.drone, coordinates=self.bounding[0]) # relocating drone to first bounding box point
         await self.lawnmower_search()
+        #gcp_mission(frame=self.newest_frame)
+        while len(self.gcp_squares) < self.num_targets:
+            potentital_gcp = await self.gcp_mission(self.newest_frame)
+
+
         if rtl:
             await return_to_launch(drone=self.drone)
         pass
-
+    def update_s
     async def gcp_mission(self, frame):
-        model = YOLO("yolov26n.onnx")
+        model = YOLO("best.onnx")
         results = model.track(source=frame, stream=True)
         ordered_pairs = []
         for r in results:
@@ -88,37 +96,22 @@ class TargetLocalization:
                                                  drone_position["alt"], drone_heading)
 
                     ordered_pairs.append(coords)
-        current_position = await self.drone.get_position_deg()
-        closest_node = (np.inf, np.inf)
-        arranged_graph = []  # Changed to a list for mutability
-
-        # Make a mutable copy of ordered_pairs if you intend to modify it
-        ordered_points_to_process = list(ordered_pairs)
-
-        for j in range(math.factorial(len(ordered_points_to_process))):
-            if not ordered_points_to_process:
-                break  # No more points to process
-
-            closest_node_current_iteration = None
-            min_distance = float('inf')
-            #[(5,2), (2,3), (4,5)]
-            for i in ordered_points_to_process:
-                print(f"FROM TARGETLOCALIZATION: i = {i}")
-                distance_to_i = haversine_distance(i, current_position)
-                if distance_to_i < min_distance:
-                    min_distance = distance_to_i
-                    closest_node_current_iteration = i
-
-            if closest_node_current_iteration is not None:
-                arranged_graph.append(closest_node_current_iteration)
-                ordered_points_to_process.remove(
-                    closest_node_current_iteration)  # Correct way to remove an element from a list
-                current_position = closest_node_current_iteration
-            else:
-                break  # Should not happen if ordered_points_to_process is not empty
-        return arranged_graph
-    
-	
+        #current_position = await self.drone.get_position_deg()
+        return ordered_pairs
+    def compute_optimal_route(self, current_pos, unvisited_gcps):
+        #code TSP(calculate haversine distance for all of the points
+        shortest_path_cost = float('inf')
+        best_next_node = None
+        for path in itertools.permutations(unvisited_gcps):
+            total_distance = 0
+            current_node = current_pos
+            for point in path:
+                total_distance+=haversine_distance(point, current_node)
+                current_node = point
+            if total_distance < shortest_path_cost:
+                shortest_path_cost = total_distance
+                best_next_node = path[0]
+        return best_next_node
     async def lawnmower_search(self, lane_spacing_meters: float = 5):
         """
         Fly a lawnmower sweep inside the provided geofence polygon.
