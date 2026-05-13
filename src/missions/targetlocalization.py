@@ -76,7 +76,7 @@ class TargetLocalization:
         self.visited_gcps: set[tuple] = set()
 
         # YOLO model loaded ONCE at construction — never reloaded per frame.
-        self.model = YOLO("best.onnx")
+        self.model = YOLO("best.onnx") #change this .engine file
 
         self.classifer = TensorRTModel("classifer.engine")
         self.final_gcp_location = []
@@ -213,10 +213,13 @@ class TargetLocalization:
             # may grow before we arrive and re-evaluate.
             await reposition_drone_deg(
                 drone=self.drone, coordinates=list(next_target))
-            classified_objects =await self.classifier()
+            classified_objects = await self.classifier()
 
-            our_gcp_squares = classified_objects[0]
-            self.final_gcp_location.append(our_gcp_squares)
+            if classified_objects:
+                our_gcp_squares = classified_objects[0]
+                self.final_gcp_location.append(our_gcp_squares)
+            else:
+                print("[TSP] Target not found at waypoint, skipping classification.")
 
             # Mark visited only after arrival.
             self.visited_gcps.add(next_target)
@@ -267,7 +270,7 @@ class TargetLocalization:
         drone_heading = await self.drone.get_heading()        # degrees 0-359
 
         detections: list[tuple] = []
-        results = self.model.track(source=frame, stream=True, persist=True)
+        results = await asyncio.to_thread(self.model.track, source=frame, stream=True, persist=True)
 
         for r in results:
             if r.boxes.id is None:
@@ -288,7 +291,7 @@ class TargetLocalization:
         frame = self.newest_frame
         drone_pos = await self.drone.get_position_deg()  # {"lat", "long", "alt"}
         drone_heading = await self.drone.get_heading()
-        results = self.model.track(frame, stream=True, persist=True)
+        results = self.model.predict(frame, conf=0.7)
         classified_objects = []
         for r in results:
             if r.boxes.id is None:
