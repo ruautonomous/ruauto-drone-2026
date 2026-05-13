@@ -39,7 +39,7 @@ class PackageDrop:
     async def upload_mission(self, rtl: bool = True):
         asyncio.create_task(self.camera())
         #asyncio.create_task(self.sim_camera())
-        #await asyncio.create_task(self.movement_mission(rtl))
+        await asyncio.create_task(self.movement_mission(rtl))
         pass
 
     async def movement_mission(self, rtl: bool = True):
