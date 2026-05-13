@@ -15,7 +15,7 @@ from utils.drone import Drone
 from utils.reposition import *
 from utils.takeoff import *
 from helper.TensorRTClassifer import TensorRTModel, preprocess_image
-
+import numpy as np
 '''
 • 5-10 objects will be distributed within a predefined area of the competition course.
 • A very rough set of bounding GPS coordinates will be provided, and four larger objects will
@@ -78,13 +78,8 @@ class TargetLocalization:
         # YOLO model loaded ONCE at construction — never reloaded per frame.
         self.model = YOLO("best.onnx")
 
-        self.cropper = ObjectCropper(
-            model="best.engine",
-            confidence_threshold=0.7,
-            crop_dir = "crop_images",
-        ) #we probably need to change this to a different directory
         self.classifer = TensorRTModel("classifer.engine")
-
+        self.final_gcp_location = []
         # Signals the continuous detection task to exit cleanly.
         self._mission_done = asyncio.Event()
 
@@ -218,9 +213,10 @@ class TargetLocalization:
             # may grow before we arrive and re-evaluate.
             await reposition_drone_deg(
                 drone=self.drone, coordinates=list(next_target))
-            gcp_squares = self.cropper(self.newest_frame)
-            new_squares = preprocess_image()
-            
+            classified_objects =await self.classifier()
+
+            our_gcp_squares = classified_objects[0]
+            self.final_gcp_location.append(our_gcp_squares)
 
             # Mark visited only after arrival.
             self.visited_gcps.add(next_target)
@@ -276,7 +272,7 @@ class TargetLocalization:
         for r in results:
             if r.boxes.id is None:
                 continue
-            boxes     = r.boxes.xyxy.cpu().numpy()
+            boxes= r.boxes.xyxy.cpu().numpy()
             track_ids = r.boxes.id.cpu().numpy()
             for box, _track_id in zip(boxes, track_ids):
                 lat, lon = serve_object_coords(
@@ -287,6 +283,44 @@ class TargetLocalization:
                 detections.append((lat, lon, 0))
 
         return detections
+
+    async def classifier(self):
+        frame = self.newest_frame
+        drone_pos = await self.drone.get_position_deg()  # {"lat", "long", "alt"}
+        drone_heading = await self.drone.get_heading()
+        results = self.model.track(frame, stream=True, persist=True)
+        classified_objects = []
+        for r in results:
+            if r.boxes.id is None:
+                continue
+            boxes = r.boxes.xyxy.cpu().numpy()
+            track_ids = r.boxes.id.cpu().numpy()
+            confidence = r.boxes.conf.cpu().numpy()
+            for box, _track_ids, conf in zip(boxes, track_ids,confidence):
+                if conf >= 0.85:
+                    lat, lon = serve_object_coords(
+                        box, frame.shape,
+                        drone_pos["lat"], drone_pos["long"],
+                        drone_pos["alt"], drone_heading
+                    )
+                    x1, y1, x2, y2 = box
+
+                    # 3. Crop the square directly from the numpy array (in memory)
+                    # Note: NumPy slicing is [y_start:y_end, x_start:x_end]
+                    gcp_square = self.newest_frame[y1:y2, x1:x2]
+
+                    # 4. Pass the cropped array straight to your classifier
+                    image = preprocess_image(gcp_square)
+                    predictions = self.classifer.predict(image)
+                    class_probabilities = predictions[0]
+                    predicted_class_id = np.argmax(class_probabilities)
+                    classified_objects.append((predicted_class_id, lat, lon, 0))
+
+        return classified_objects
+
+                # write to text file
+
+
     # ================================================================== #
     #  DEDUPLICATION MERGE                                                 #
     # ================================================================== #
