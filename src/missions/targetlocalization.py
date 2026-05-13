@@ -79,7 +79,7 @@ class TargetLocalization:
         self.model = YOLO("best.onnx")
 
         self.cropper = ObjectCropper(
-            model=self.model,
+            model="best.engine",
             confidence_threshold=0.7,
             crop_dir = "crop_images",
         ) #we probably need to change this to a different directory
@@ -220,6 +220,7 @@ class TargetLocalization:
                 drone=self.drone, coordinates=list(next_target))
             gcp_squares = self.cropper(self.newest_frame)
             new_squares = preprocess_image()
+            
 
             # Mark visited only after arrival.
             self.visited_gcps.add(next_target)
