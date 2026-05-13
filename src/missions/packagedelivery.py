@@ -213,46 +213,49 @@ class PackageDelivery:
         Processes the current frame to detect the bullseye and adjust drone velocity.
         Returns True if the drone is successfully centered, False otherwise.
         """
+        i = 0
         # Camera/frame parameters
         frame_width = 640
         frame_height = 480
-    
+
         try:
             # 1. DETECTION PHASE - Detect bullseye using concentric circles
             frame = self._get_camera_frame()
-        
+
             if frame is None:
                 print("No camera frame available")
                 return False
-        
+            if i < 20:
+                cv2.imwrite(f"frame_{i}.jpeg", frame)
+                i += 1
             detection_result = self.detect_bullseye(frame)
-        
+
             if detection_result is None:
                 print("No bullseye detected")
                 return False
-        
+
             target_x, target_y, radius = detection_result
             print(f"Bullseye detected at: ({target_x}, {target_y}), radius: {radius}")
-        
+
             # 2. MOVEMENT PHASE - Calculate movement using detected center
-            current_alt = self.drone.get_altitude()
+            current_alt = await self.drone.get_altitude()
             vx, vy, vz, is_centered = self.calculate_movement_to_center(
                 target_x, target_y, frame_width, frame_height
             )
-        
+
             # Altitude safety check
             if current_alt < self.MIN_ALT_METERS:
                 vz = 0.5  # ascend slightly
-        
+
             # 3. STOPPING PHASE - Stop when drone reaches center within tolerance
             if not self.stop_movement_when_centered(is_centered):
                 print("Mission complete - drone centered on bullseye!")
-                await reposition_velocity(drone=self.drone, vx=0, vy=0, vz=0) # CHANGE TO LOITER IF NECESSARY
+                await reposition_velocity(drone=self.drone, vx=0, vy=0, vz=0)  # CHANGE TO LOITER IF NECESSARY
                 return True
-        
+
             # Send movement commands if not centered
             await reposition_velocity(drone=self.drone, vx=vx, vy=vy, vz=vz)
-            
+
             return False
         except KeyboardInterrupt:
             print("Mission interrupted by user")

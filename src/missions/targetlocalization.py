@@ -1,141 +1,336 @@
 import asyncio
-from ultralytics import YOLO
-from pymavlink import mavutil
-import cv2
-import cv2
-from pymavlink.dialects.v20 import common
-import math
-import numpy as np
 import itertools
-from pyparsing import results
+import math
 
-from helper.math_funcs import calculate3Ddist, haversine_distance
+import cv2
 from ultralytics import YOLO
 
-from utils.drone import Drone, DroneProperties
-from utils.takeoff import *
-from utils.speed import change_speed
-import utils.mode as mode
-from utils.armdisarm import *
-from utils.reposition import *
-
-from helper.file_controller import *
+from helper.file_reader import read_geofence
 from helper.gimbal import reposition_gimbal
-from helper.file_reader import *
-
+from helper.math_funcs import haversine_distance
 from helper.serve_object_coords import serve_object_coords
+from utils.armdisarm import *
+from utils.drone import Drone
+from utils.reposition import *
+from utils.takeoff import *
 
 '''
 • 5-10 objects will be distributed within a predefined area of the competition course.
 • A very rough set of bounding GPS coordinates will be provided, and four larger objects will
-define a tighter area which contains all identification objects.
+  define a tighter area which contains all identification objects.
 • Teams must localize and identify the targets, providing a list of their locations and identifying
-number no later than 30 minutes after the end of their flight slot. The UAS must not descent
-below 25 feet (7.62 meters) while searching for objects.
+  number no later than 30 minutes after the end of their flight slot. The UAS must not descend
+  below 25 feet (7.62 meters) while searching for objects.
 • If all objects are correctly identified and localized, a total of 14 points will be awarded.
-• 0.5 points will be deduced for each object that is either not correctly identified or not correctly
-localized, and 1 point if both are true.
+• 0.5 points will be deducted for each object that is either not correctly identified or not
+  correctly localized, and 1 point if both are true.
 • If the UAS descends below 25 feet but not below 20 feet, 3 points will be deducted from the
-calculated score. If the UAS descends below 20 feet, a flat score of 0 will be awarded.
+  calculated score. If the UAS descends below 20 feet, a flat score of 0 will be awarded.
 '''
+
 
 class TargetLocalization:
 
-    # CONSTANTS
-    MIN_ALT_METERS = 30/3.281   # 30 feet / 3.281 = X meters
-    PIXEL_TOLERANCE = 20     # pixels deadband
-    GAIN = 0.002             # velocity scaling factor
-    MAX_VEL = 1.0            # m/s cap
-    # Latitude meters-per-degree approximation coefficients (all in meters).
+    # --- Flight constants ---
+    MIN_ALT_METERS  = 30 / 3.281    # 30 ft → metres (~9.14 m)
+    PIXEL_TOLERANCE = 20            # px deadband for center_on_target
+    GAIN            = 0.002         # velocity scaling factor
+    MAX_VEL         = 1.0           # m/s cap for velocity commands
+
+    # --- Latitude metres-per-degree approximation coefficients ---
     LAT_METERS_COEFF_A = 111132.92
     LAT_METERS_COEFF_B = 559.82
     LAT_METERS_COEFF_C = 1.175
-    # ~0.11 m in latitude degrees, enough to avoid duplicate lane endpoints from float drift.
-    LANE_LAT_TOLERANCE_DEG = 1e-6
+
+    # --- Lawnmower geometry tolerances ---
+    LANE_LAT_TOLERANCE_DEG  = 1e-6
     LANE_LONG_TOLERANCE_DEG = 1e-6
 
+    # --- Detection / deduplication / routing ---
+    GCP_DEDUP_MIN_DIST_M = 1.0    # closer than this → same object (metres)
+    DETECTION_INTERVAL_S = 0.5    # how often YOLO runs throughout the mission
+    CAMERA_INTERVAL_S    = 0.033  # camera capture cadence (~30 fps)
+
+    # After all known targets are visited, wait this long for new detections
+    # before declaring the mission complete.
+    NEW_TARGET_WAIT_S = 5.0
+
+    # ------------------------------------------------------------------ #
+    #  Constructor                                                         #
+    # ------------------------------------------------------------------ #
     def __init__(self, drone: Drone, initFile: str = None):
-        self.drone = drone
-        self.file = initFile
+        self.drone    = drone
+        self.file     = initFile
+
         self.newest_frame = None
-        self.bounding = read_geofence(initFile)
-        self.num_targets = 10
-        self.gcp_squares = []
-        self.unvisited_gcps = []
-        self.located = False
-        pass
+        self.bounding     = read_geofence(initFile)
+        self.num_targets  = 10
 
+        # All confirmed unique detections: list of (lat, lon, 0) tuples.
+        self.gcp_squares: list[tuple] = []
 
+        # Targets already physically visited during the TSP phase.
+        # Stored as a set for O(1) membership tests.
+        self.visited_gcps: set[tuple] = set()
 
-    async def upload_mission(self, rtl=True):
-        await takeoff(drone=self.drone, target_alt = self.MIN_ALT_METERS) # set takeoff alt to whatever imaging wants
+        # YOLO model loaded ONCE at construction — never reloaded per frame.
+        self.model = YOLO("best.onnx")
+
+        # Signals the continuous detection task to exit cleanly.
+        self._mission_done = asyncio.Event()
+
+    # ================================================================== #
+    #  PUBLIC ENTRY POINT                                                  #
+    # ================================================================== #
+    async def upload_mission(self, rtl: bool = True):
+        """
+        Full autonomous mission:
+
+          1. Takeoff + gimbal down.
+          2. Start a single detection task that runs for the ENTIRE mission.
+          3. Phase 1 — lawnmower sweep; detection populates gcp_squares.
+          4. Phase 2 — dynamic TSP visit; route is recomputed after each
+             arrival so targets discovered mid-route are never skipped.
+          5. Signal detection to stop, then RTL.
+        """
+        await takeoff(drone=self.drone, target_alt=self.MIN_ALT_METERS)
         await reposition_gimbal(drone=self.drone, pitch=-90)
+
+        # Camera stream — persistent background task for the whole mission.
         asyncio.create_task(self.camera())
-        # await reposition_drone_deg(drone=self.drone, coordinates=self.bounding[0]) # relocating drone to first bounding box point
-        await asyncio.gather(
-            self.lawnmower_search(),
-            self.localize()
-        )
-        #gcp_mission(frame=self.newest_frame)
-        while len(self.gcp_squares) < self.num_targets:
-            potentital_gcps = await self.gcp_mission()
 
+        # Detection — runs from takeoff until _mission_done is set.
+        # Critically, it is NOT cancelled after the lawnmower; it continues
+        # through every TSP waypoint so mid-route discoveries are captured.
+        detection_task = asyncio.create_task(self._continuous_detection())
 
+        # ── Phase 1: lawnmower ──────────────────────────────────────────
+        print("[Mission] Phase 1: lawnmower search.")
+        await self.lawnmower_search()
+        print(f"[Mission] Lawnmower complete — "
+              f"{len(self.gcp_squares)} unique target(s) found so far.")
+
+        # ── Phase 2: dynamic TSP ────────────────────────────────────────
+        # Detection is still running here. New GCPs discovered while
+        # flying between waypoints are included in the next route decision.
+        print("[Mission] Phase 2: dynamic TSP visit.")
+        if self.gcp_squares:
+            await self._visit_targets_dynamic_tsp()
+        else:
+            print("[Mission] No targets detected — skipping TSP phase.")
+
+        # Clean shutdown of the detection task.
+        self._mission_done.set()
+        await detection_task
+
+        print(f"[Mission] Done — "
+              f"{len(self.visited_gcps)}/{len(self.gcp_squares)} target(s) visited.")
 
         if rtl:
             await return_to_launch(drone=self.drone)
-        pass
-    def update_unvisited_gcps(self, potentian_gcps):
-        #update the unvisited gcp with new gcps that we have not seen before(both gcp and unvisited)
-        MIN_DISTANCE=1
-        for gcp in potentian_gcps:
-            for square in self.gcp_squares:
-                if haversine_distance(square, gcp)<= MIN_DISTANCE: #we probably have seen this gcp and visited before
-                    potentian_gcps.remove(gcp)
-            for unvisited_gcp in self.unvisited_gcps:
-                if haversine_distance(unvisited_gcp, gcp)<= MIN_DISTANCE: #we probably have seen this gcp and visited before
-                    potentian_gcps.remove(gcp)
 
-        self.unvisited_gcps = potentian_gcps
-    async def gcp_mission(self):
+    # ================================================================== #
+    #  CONTINUOUS DETECTION  (whole-mission background task)               #
+    # ================================================================== #
+    async def _continuous_detection(self):
+        """
+        Runs from takeoff until _mission_done is set.
+        Every DETECTION_INTERVAL_S seconds it grabs the latest frame, runs
+        YOLO, and merges unique detections into self.gcp_squares.
+        This covers both the lawnmower AND all TSP transit legs.
+        """
+        while not self._mission_done.is_set():
+            if self.newest_frame is not None:
+                detections = await self._detect_objects()
+                added = self._merge_detections(detections)
+                if added:
+                    print(f"[Detection] +{added} new target(s) → "
+                          f"{len(self.gcp_squares)} total unique target(s).")
+            await asyncio.sleep(self.DETECTION_INTERVAL_S)
+
+    # ================================================================== #
+    #  PHASE 2 — DYNAMIC TSP VISIT                                         #
+    # ================================================================== #
+    async def _visit_targets_dynamic_tsp(self):
+        """
+        Visit every target in gcp_squares using a rolling nearest-neighbour
+        strategy that re-evaluates the remaining route after EACH arrival.
+
+        Why per-stop re-evaluation instead of a pre-computed fixed route:
+          • Detection is still running — new targets may be added to
+            gcp_squares at any moment while flying between stops.
+          • Re-evaluating after each arrival means any target discovered
+            mid-transit is folded into the next leg automatically.
+
+        Termination rules (first satisfied wins):
+          1. All num_targets confirmed targets have been visited.
+          2. All currently known targets have been visited AND no new
+             target appears within NEW_TARGET_WAIT_S seconds.
+        """
+        while True:
+
+            # ── Build the current unvisited list ─────────────────────────
+            unvisited = [g for g in self.gcp_squares
+                         if g not in self.visited_gcps]
+
+            # ── Early-exit: all expected targets collected ────────────────
+            if len(self.visited_gcps) >= self.num_targets:
+                print("[TSP] All expected targets visited. Done.")
+                break
+
+            # ── No unvisited targets at this moment ───────────────────────
+            if not unvisited:
+                print(f"[TSP] No unvisited targets. "
+                      f"Waiting {self.NEW_TARGET_WAIT_S}s for new detections…")
+                await asyncio.sleep(self.NEW_TARGET_WAIT_S)
+
+                unvisited = [g for g in self.gcp_squares
+                             if g not in self.visited_gcps]
+                if not unvisited:
+                    print("[TSP] No new targets found. Ending TSP phase.")
+                    break
+                # New targets appeared — fall through and visit them.
+
+            # ── Pick the best next waypoint ───────────────────────────────
+            # For ≤ 8 unvisited targets: brute-force the sub-tour and take
+            # its first element (optimal immediate next hop).
+            # For > 8: take the nearest unvisited target (greedy O(n)).
+            # We only commit to ONE hop and recompute after arrival, so
+            # newly discovered targets are never bypassed.
+            current_pos = await self.drone.get_position_deg()
+            next_target = self._pick_next_target(current_pos, unvisited)
+
+            print(f"[TSP] → lat={next_target[0]:.7f}, lon={next_target[1]:.7f} "
+                  f"({len(unvisited)} unvisited, "
+                  f"{len(self.gcp_squares)} known total).")
+
+            # Fly to the chosen waypoint.
+            # Detection continues running during this await, so gcp_squares
+            # may grow before we arrive and re-evaluate.
+            await reposition_drone_deg(
+                drone=self.drone, coordinates=list(next_target))
+
+            # Mark visited only after arrival.
+            self.visited_gcps.add(next_target)
+            remaining = len(self.gcp_squares) - len(self.visited_gcps)
+            print(f"[TSP] Arrived. {len(self.visited_gcps)} visited, "
+                  f"{remaining} remaining.")
+
+    # ================================================================== #
+    #  NEXT-TARGET SELECTION                                               #
+    # ================================================================== #
+    def _pick_next_target(self, current_pos: dict,
+                          unvisited: list[tuple]) -> tuple:
+        """
+        Choose the single best immediate next waypoint from unvisited.
+
+        ≤ 8 targets  →  brute-force full sub-tour; return first element.
+        > 8 targets  →  nearest-neighbour greedy pick.
+
+        Only the first element is used because the route is recomputed
+        after every arrival.
+        """
+        if not unvisited:
+            raise ValueError("_pick_next_target called with empty list.")
+
+        start = (current_pos["lat"], current_pos["long"], 0)
+
+        if len(unvisited) <= 8:
+            return self._tsp_brute_force(start, unvisited)[0]
+
+        return min(unvisited, key=lambda t: haversine_distance(start, t))
+
+    # ================================================================== #
+    #  OBJECT DETECTION  (single frame pass)                               #
+    # ================================================================== #
+    async def _detect_objects(self) -> list[tuple]:
+        """
+        Run YOLO tracking on the latest camera frame.
+        Fetches live drone position + heading each call for accurate
+        geo-referencing regardless of how fast the drone is moving.
+
+        Returns a list of (lat, lon, 0) tuples.
+        """
         frame = self.newest_frame
-        model = YOLO("best.onnx")
-        results = model.track(source=frame, stream=True)
-        ordered_pairs = []
+        if frame is None:
+            return []
+
+        drone_pos     = await self.drone.get_position_deg()   # {"lat", "long", "alt"}
+        drone_heading = await self.drone.get_heading()        # degrees 0-359
+
+        detections: list[tuple] = []
+        results = self.model.track(source=frame, stream=True, persist=True)
+
         for r in results:
-            if r.boxes.id is not None:
-                boxes = r.boxes.xyxy.cpu().numpy()
-                track_ids = r.boxes.id.cpu().numpy()
-                for box, track_id in zip(boxes, track_ids):
+            if r.boxes.id is None:
+                continue
+            boxes     = r.boxes.xyxy.cpu().numpy()
+            track_ids = r.boxes.id.cpu().numpy()
+            for box, _track_id in zip(boxes, track_ids):
+                lat, lon = serve_object_coords(
+                    box, frame.shape,
+                    drone_pos["lat"], drone_pos["long"],
+                    drone_pos["alt"], drone_heading
+                )
+                detections.append((lat, lon, 0))
 
-                    coords = serve_object_coords(box, frame.shape, self.drone_position["lat"], self.drone_position["long"],
-                                                 self.drone_position["alt"], self.drone_heading)
+        return detections
 
-                    ordered_pairs.append(coords)
-        #current_position = await self.drone.get_position_deg()
-        return ordered_pairs
-    def compute_optimal_route(self, current_pos, unvisited_gcps):
-        #code TSP(calculate haversine distance for all of the points
-        shortest_path_cost = float('inf')
-        best_next_node = None
-        for path in itertools.permutations(unvisited_gcps):
-            total_distance = 0
-            current_node = current_pos
-            for point in path:
-                total_distance+=haversine_distance(point, current_node)
-                current_node = point
-            if total_distance < shortest_path_cost:
-                shortest_path_cost = total_distance
-                best_next_node = path[0]
-        return best_next_node
+    # ================================================================== #
+    #  DEDUPLICATION MERGE                                                 #
+    # ================================================================== #
+    def _merge_detections(self, new_detections: list[tuple]) -> int:
+        """
+        Append each candidate to gcp_squares only when it is farther than
+        GCP_DEDUP_MIN_DIST_M metres from every already-confirmed target.
+
+        Iterates new_detections (never mutated) and only appends to
+        gcp_squares — no mutation-during-iteration.
+
+        Returns the count of genuinely new targets added.
+        """
+        added = 0
+        for candidate in new_detections:
+            is_duplicate = any(
+                haversine_distance(existing, candidate) <= self.GCP_DEDUP_MIN_DIST_M
+                for existing in self.gcp_squares
+            )
+            if not is_duplicate:
+                self.gcp_squares.append(candidate)
+                added += 1
+        return added
+
+    # ================================================================== #
+    #  TSP SOLVERS                                                         #
+    # ================================================================== #
+    def _tsp_brute_force(self, start: tuple, targets: list[tuple]) -> list[tuple]:
+        """
+        Exact O(n!) TSP. Safe for n ≤ 8 (max 40 320 permutations).
+        Returns the complete ordered route starting from whichever target
+        minimises total Haversine distance from start.
+        """
+        best_cost  = float('inf')
+        best_order = targets[:]
+
+        for perm in itertools.permutations(targets):
+            cost = haversine_distance(start, perm[0])
+            for i in range(len(perm) - 1):
+                cost += haversine_distance(perm[i], perm[i + 1])
+            if cost < best_cost:
+                best_cost  = cost
+                best_order = list(perm)
+
+        return best_order
+
+    # ================================================================== #
+    #  LAWNMOWER SEARCH                                                    #
+    # ================================================================== #
     async def lawnmower_search(self, lane_spacing_meters: float = 5):
         """
-        Fly a lawnmower sweep inside the provided geofence polygon.
-        Assumes geofence points form a convex polygon (e.g., 4-point bounding area).
-        Lanes are generated from min/max latitude and then clipped per-lane to
-        polygon edge intersections, so each traversed segment stays within the
-        given coordinates. If insufficient geofence points are provided, the
-        search is skipped.
+        Fly a boustrophedon (lawnmower) sweep inside the geofence polygon.
+        Lanes are evenly spaced by lane_spacing_meters in latitude and
+        clipped to polygon-edge intersections so the path never exits the
+        geofence boundary.
         """
         if lane_spacing_meters <= 0:
             raise ValueError("lane_spacing_meters must be greater than 0.")
@@ -145,10 +340,8 @@ class TargetLocalization:
             return
 
         polygon_points = self._get_ordered_polygon_points(self.bounding)
-        lats = [point[0] for point in polygon_points]
-
-        min_lat = min(lats)
-        max_lat = max(lats)
+        lats = [p[0] for p in polygon_points]
+        min_lat, max_lat = min(lats), max(lats)
 
         center_lat_rad = math.radians((min_lat + max_lat) / 2.0)
         meters_per_degree_lat = (
@@ -156,14 +349,13 @@ class TargetLocalization:
             - self.LAT_METERS_COEFF_B * math.cos(2 * center_lat_rad)
             + self.LAT_METERS_COEFF_C * math.cos(4 * center_lat_rad)
         )
-
         lane_spacing_deg_lat = lane_spacing_meters / meters_per_degree_lat
 
         current_pos = await self.drone.get_position_deg()
-        search_alt = max(current_pos["alt"], self.MIN_ALT_METERS)
+        search_alt  = max(current_pos["alt"], self.MIN_ALT_METERS)
 
         lane_lats = [min_lat]
-        lane_lat = min_lat + lane_spacing_deg_lat
+        lane_lat  = min_lat + lane_spacing_deg_lat
         while lane_lat < max_lat - self.LANE_LAT_TOLERANCE_DEG:
             lane_lats.append(lane_lat)
             lane_lat += lane_spacing_deg_lat
@@ -177,181 +369,134 @@ class TargetLocalization:
 
             min_long, max_long = lane_bounds
             if lane_idx % 2 == 0:
-                start_long = min_long
-                end_long = max_long
+                start_long, end_long = min_long, max_long
             else:
-                start_long = max_long
-                end_long = min_long
+                start_long, end_long = max_long, min_long
 
-            await reposition_drone_deg(drone=self.drone, coordinates=[lat, start_long, search_alt])
-            await reposition_drone_deg(drone=self.drone, coordinates=[lat, end_long, search_alt])
+            await reposition_drone_deg(
+                drone=self.drone, coordinates=[lat, start_long, search_alt])
+            await reposition_drone_deg(
+                drone=self.drone, coordinates=[lat, end_long,   search_alt])
 
-    def _get_ordered_polygon_points(self, points):
-        center_lat = sum(point[0] for point in points) / len(points)
-        center_long = sum(point[1] for point in points) / len(points)
-        return sorted(
-            points,
-            key=lambda point: math.atan2(point[0] - center_lat, point[1] - center_long)
-        )
-
-    def _get_lane_longitude_bounds(self, lane_lat: float, polygon_points):
-        intersections = []
-        lat_tol = self.LANE_LAT_TOLERANCE_DEG
-        long_tol = self.LANE_LONG_TOLERANCE_DEG
-        size = len(polygon_points)
-
-        for idx in range(size):
-            lat_1, long_1 = polygon_points[idx]
-            lat_2, long_2 = polygon_points[(idx + 1) % size]
-
-            if abs(lat_2 - lat_1) <= lat_tol:
-                if abs(lane_lat - lat_1) <= lat_tol:
-                    min_long = min(long_1, long_2)
-                    max_long = max(long_1, long_2)
-                    intersections.extend([min_long, max_long])
-                continue
-
-            lower_lat = min(lat_1, lat_2) - lat_tol
-            upper_lat = max(lat_1, lat_2) + lat_tol
-            if lane_lat < lower_lat or lane_lat > upper_lat:
-                continue
-
-            t = (lane_lat - lat_1) / (lat_2 - lat_1)
-            intersection_long = long_1 + t * (long_2 - long_1)
-            intersections.append(intersection_long)
-
-        if len(intersections) < 2:
-            return None
-
-        intersections.sort()
-        unique_intersections = [intersections[0]]
-        for candidate in intersections[1:]:
-            if abs(candidate - unique_intersections[-1]) > long_tol:
-                unique_intersections.append(candidate)
-
-        if len(unique_intersections) < 2:
-            return None
-
-        return [unique_intersections[0], unique_intersections[-1]]
-
+    # ================================================================== #
+    #  CAMERA CAPTURE LOOP                                                 #
+    # ================================================================== #
     async def camera(self):
-        cam_id = 0
-
-        # Initialize capture
-        # We try V4L2 first as it's standard for the SIYI A8 Mini
-        cap = cv2.VideoCapture(cam_id, cv2.CAP_V4L2)
-
-        # Set the resolution to match your SIYI output
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        """
+        Continuously reads frames from the SIYI A8 Mini via V4L2 and stores
+        the latest one in self.newest_frame at ~30 fps.
+        cap.release() in a finally block prevents resource leaks.
+        """
+        cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH,  1920)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
         if not cap.isOpened():
-            print(f"Error: Could not open camera at /dev/video{cam_id}")
+            print("Error: Could not open camera at /dev/video0")
             return
 
-        print("Stream Started. Press 'q' to exit.")
+        print("[Camera] Stream started at 1920×1080.")
+        try:
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    print("[Camera] Empty frame — check connections.")
+                    break
+                self.newest_frame = frame
+                await asyncio.sleep(self.CAMERA_INTERVAL_S)
+        finally:
+            cap.release()
+            print("[Camera] Stream released.")
 
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                print("Empty frame received. Check connections.")
-                break
-            else:
-                self.set_camera_frame(frame)
-            await asyncio.sleep(1)
+    # ================================================================== #
+    #  PIXEL-LEVEL TARGET CENTERING  (velocity control)                   #
+    # ================================================================== #
+    async def center_on_target(self, target_x: int, target_y: int,
+                               frame_width: int, frame_height: int):
+        """
+        Issue NED velocity commands to bring a detected target to the
+        centre of the camera frame.
 
-    def set_camera_frame(self, frame):
-        self.newest_frame = frame
+          vx — forward/back  (camera Y error → drone X in NED)
+          vy — left/right    (camera X error → drone Y in NED)
+          vz — hold alt; ascend if below MIN_ALT_METERS (NED: -z = up)
+        """
+        error_x = target_x - frame_width  // 2
+        error_y = target_y - frame_height // 2
+        print(f"[Center] Error X: {error_x}  Error Y: {error_y}")
 
-    async def center_on_target(self, target_x, target_y, frame_width, frame_height):
-
-        frame_center_x = frame_width // 2
-        frame_center_y = frame_height // 2
-
-        error_x = target_x - frame_center_x
-        error_y = target_y - frame_center_y
-
-        print("Error X:", error_x, "Error Y:", error_y)
-
-        # Deadband (prevents oscillation)
         if abs(error_x) < self.PIXEL_TOLERANCE:
             error_x = 0
         if abs(error_y) < self.PIXEL_TOLERANCE:
             error_y = 0
 
-        # Convert to velocity
-        vx = -error_y * self.GAIN   # forward/back
-        vy = -error_x * self.GAIN   # left/right
-        vz = 0                 # hold altitude
+        vx = max(min(-error_y * self.GAIN, self.MAX_VEL), -self.MAX_VEL)
+        vy = max(min(-error_x * self.GAIN, self.MAX_VEL), -self.MAX_VEL)
 
-        # Clamp velocity
-        vx = max(min(vx, self.MAX_VEL), -1*self.MAX_VEL)
-        vy = max(min(vy, self.MAX_VEL), -1*self.MAX_VEL)
-
-        # Enforce minimum altitude
         current_alt = await self.drone.get_altitude()
-        if current_alt < self.MIN_ALT_METERS:
-            vz = -0.5  # ascend slightly
-        else:
-            vz = 0
+        vz = -0.5 if current_alt < self.MIN_ALT_METERS else 0.0
 
         reposition_velocity(self.drone, vx=vx, vy=vy, vz=vz)
 
-def pixel_to_world(cx, cy, map_width, map_height, world_width, world_height):
-        x = (cx / map_width) * world_width
-        y = (cy / map_height) * world_height
-        return x, y
+    # ================================================================== #
+    #  POLYGON GEOMETRY HELPERS                                            #
+    # ================================================================== #
+    def _get_ordered_polygon_points(self, points: list) -> list:
+        """Sort polygon vertices by polar angle around their centroid."""
+        center_lat  = sum(p[0] for p in points) / len(points)
+        center_long = sum(p[1] for p in points) / len(points)
+        return sorted(
+            points,
+            key=lambda p: math.atan2(p[0] - center_lat, p[1] - center_long)
+        )
+
+    def _get_lane_longitude_bounds(self, lane_lat: float,
+                                   polygon_points: list) -> list | None:
+        """
+        Find min/max longitudes where a horizontal line at lane_lat
+        intersects the polygon edges.
+        Returns [min_long, max_long] or None if the lane misses the polygon.
+        """
+        intersections: list[float] = []
+        lat_tol  = self.LANE_LAT_TOLERANCE_DEG
+        long_tol = self.LANE_LONG_TOLERANCE_DEG
+        size     = len(polygon_points)
+
+        for idx in range(size):
+            lat_1, long_1 = polygon_points[idx]
+            lat_2, long_2 = polygon_points[(idx + 1) % size]
+
+            if abs(lat_2 - lat_1) <= lat_tol:           # horizontal edge
+                if abs(lane_lat - lat_1) <= lat_tol:
+                    intersections.extend([min(long_1, long_2),
+                                          max(long_1, long_2)])
+                continue
+
+            if not (min(lat_1, lat_2) - lat_tol         # lane outside span
+                    <= lane_lat
+                    <= max(lat_1, lat_2) + lat_tol):
+                continue
+
+            t = (lane_lat - lat_1) / (lat_2 - lat_1)
+            intersections.append(long_1 + t * (long_2 - long_1))
+
+        if len(intersections) < 2:
+            return None
+
+        intersections.sort()
+        unique = [intersections[0]]
+        for c in intersections[1:]:
+            if abs(c - unique[-1]) > long_tol:
+                unique.append(c)
+
+        return [unique[0], unique[-1]] if len(unique) >= 2 else None
 
 
-'''
-class Edge:
-    def __init__(self, u, v, weight):
-        self.u = u
-        self.v = v
-        self.weight = weight
-
-    def __lt__(self, other):
-        return self.weight < other.weight
-
-    def cost_edges(arranged_graph):
-        n = len(arranged_graph)
-        # I coded cost edges to be dynamic with arranged_graph, change if this is false
-        # edges = [ # this will be the graph representation of the gcp squares
-        #     Edge(0, 1, 10),
-        #     Edge(0, 2, 6),
-        #     Edge(0, 3, 5),
-        #     Edge(1, 3, 15),
-        #     Edge(2, 3, 4)
-        # ]
-        edges = []
-
-        for i in range(n):
-            for j in range(i+1,n):
-                w=calculate3Ddist(arranged_graph[i], arranged_graph[j])
-                edges.append(Edge(i, j, w))
-
-        cost = 0
-        tree_id = [i for i in range(n)]
-        result = []
-
-        edges.sort()
-
-        for e in edges:
-            if tree_id[e.u] != tree_id[e.v]:
-                cost += e.weight
-                result.append(e)
-
-                old_id = tree_id[e.u]
-                new_id = tree_id[e.v]
-
-                for i in range(n):
-                    if tree_id[i] == old_id:
-                        tree_id[i] = new_id
-
-
-        print("Edges in MST:")
-        for e in result:
-            print(e.u, "-", e.v, ":", e.weight)
-
-        print("Total cost:", cost)
-'''
+# ---------------------------------------------------------------------- #
+#  Module-level utility                                                    #
+# ---------------------------------------------------------------------- #
+def pixel_to_world(cx: float, cy: float,
+                   map_width: float, map_height: float,
+                   world_width: float, world_height: float) -> tuple[float, float]:
+    """Map pixel coordinates to world-space coordinates."""
+    return (cx / map_width) * world_width, (cy / map_height) * world_height
