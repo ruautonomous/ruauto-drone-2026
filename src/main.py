@@ -28,7 +28,7 @@ async def main():
     await asyncio.gather(
         drone.start_background_processes(), 
         drone.watch_for_heartbeat(),
-        #fence.upload_fence(),
+        fence.upload_fence(),
         mission_picker(drone)
         )
 
