@@ -74,14 +74,16 @@ class TargetLocalization:
         await self.lawnmower_search()
         #gcp_mission(frame=self.newest_frame)
         while len(self.gcp_squares) < self.num_targets:
-            potentital_gcp = await self.gcp_mission(self.newest_frame)
+            potentital_gcps = await self.gcp_mission()
 
 
         if rtl:
             await return_to_launch(drone=self.drone)
         pass
-    def update_s
-    async def gcp_mission(self, frame):
+    def update_unvisited_gcps(self, new_gcps):
+        self.unvisited_gcps = new_gcps
+    async def gcp_mission(self):
+        frame = self.get
         model = YOLO("best.onnx")
         results = model.track(source=frame, stream=True)
         ordered_pairs = []
