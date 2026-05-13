@@ -62,6 +62,7 @@ class TargetLocalization:
         self.num_targets = 10
         self.gcp_squares = []
         self.unvisited_gcps = []
+        self.located = False
         pass
 
 
@@ -71,7 +72,10 @@ class TargetLocalization:
         await reposition_gimbal(drone=self.drone, pitch=-90)
         asyncio.create_task(self.camera())
         # await reposition_drone_deg(drone=self.drone, coordinates=self.bounding[0]) # relocating drone to first bounding box point
-        await self.lawnmower_search()
+        await asyncio.gather(
+            self.lawnmower_search(),
+            self.localize()
+        )
         #gcp_mission(frame=self.newest_frame)
         while len(self.gcp_squares) < self.num_targets:
             potentital_gcps = await self.gcp_mission()
@@ -80,6 +84,12 @@ class TargetLocalization:
         if rtl:
             await return_to_launch(drone=self.drone)
         pass
+
+    async def localize(self):
+        while self.located == False:
+            await self.gcp_mission()
+            await asyncio.sleep(0.1)
+
     def update_unvisited_gcps(self, new_gcps):
         self.unvisited_gcps = new_gcps
     async def gcp_mission(self):
@@ -92,10 +102,9 @@ class TargetLocalization:
                 boxes = r.boxes.xyxy.cpu().numpy()
                 track_ids = r.boxes.id.cpu().numpy()
                 for box, track_id in zip(boxes, track_ids):
-                    drone_position = await self.drone.get_position_deg()  # latitude, longitude, altitude
-                    drone_heading = await self.drone.get_heading()
-                    coords = serve_object_coords(box, frame.shape, drone_position["lat"], drone_position["long"],
-                                                 drone_position["alt"], drone_heading)
+                    
+                    coords = serve_object_coords(box, frame.shape, self.drone_position["lat"], self.drone_position["long"],
+                                                 self.drone_position["alt"], self.drone_heading)
 
                     ordered_pairs.append(coords)
         #current_position = await self.drone.get_position_deg()
@@ -243,6 +252,8 @@ class TargetLocalization:
                 print("Empty frame received. Check connections.")
                 break
             else:
+                self.drone_heading = await self.drone.get_heading()
+                self.drone_position = await self.drone.get_position_deg()  # latitude, longitude, altitude
                 self.set_camera_frame(frame)
             await asyncio.sleep(1)
 
