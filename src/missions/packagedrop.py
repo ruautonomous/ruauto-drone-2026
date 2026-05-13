@@ -28,7 +28,7 @@ class PackageDrop:
         drop_loc: str = config['drop_loc'] 
         drop_loc = drop_loc.removesuffix('\n').split(',')
         self.drop_loc = [float(drop_loc[0]), float(drop_loc[1])]
-        
+        self.status_frame = False
         # Bullseye mission constants
         self.MIN_ALT_METERS = 15
         self.PIXEL_TOLERANCE = 20
@@ -54,6 +54,7 @@ class PackageDrop:
         is_centered  = False
         while  not is_centered:
             is_centered = await self.bullseye_mission()
+
             print(is_centered)
             await asyncio.sleep(0.1)
 
@@ -139,13 +140,19 @@ class PackageDrop:
             return
 
         print("Stream Started. Press 'q' to exit.")
-
+        counter = 0
         while True:
             ret, frame = cap.read()
             if not ret:
+
                 print("Empty frame received. Check connections.")
+                if counter >=15:
+                    await return_to_launch(drone=self.drone)
+                counter += 1
                 break
             else:
+                if counter > 0:
+                    counter=0
                 self.set_camera_frame(frame)
             await asyncio.sleep(1)
  
@@ -229,6 +236,7 @@ class PackageDrop:
             if frame is None:
                 print("No camera frame available")
                 return False
+
             if i<20:
                 cv2.imwrite(f"frame_{i}.jpeg", frame)
                 i+=1

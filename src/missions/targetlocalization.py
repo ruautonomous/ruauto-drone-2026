@@ -4,6 +4,7 @@ import math
 
 import cv2
 from ultralytics import YOLO
+from ultralytics.solutions import ObjectCropper
 
 from helper.file_reader import read_geofence
 from helper.gimbal import reposition_gimbal
@@ -13,6 +14,7 @@ from utils.armdisarm import *
 from utils.drone import Drone
 from utils.reposition import *
 from utils.takeoff import *
+from helper.TensorRTClassifer import TensorRTModel, preprocess_image
 
 '''
 • 5-10 objects will be distributed within a predefined area of the competition course.
@@ -75,6 +77,13 @@ class TargetLocalization:
 
         # YOLO model loaded ONCE at construction — never reloaded per frame.
         self.model = YOLO("best.onnx")
+
+        self.cropper = ObjectCropper(
+            model=self.model,
+            confidence_threshold=0.7,
+            crop_dir = "crop_images",
+        ) #we probably need to change this to a different directory
+        self.classifer = TensorRTModel("classifer.engine")
 
         # Signals the continuous detection task to exit cleanly.
         self._mission_done = asyncio.Event()
@@ -209,6 +218,8 @@ class TargetLocalization:
             # may grow before we arrive and re-evaluate.
             await reposition_drone_deg(
                 drone=self.drone, coordinates=list(next_target))
+            gcp_squares = self.cropper(self.newest_frame)
+            new_squares = preprocess_image()
 
             # Mark visited only after arrival.
             self.visited_gcps.add(next_target)
@@ -275,7 +286,6 @@ class TargetLocalization:
                 detections.append((lat, lon, 0))
 
         return detections
-
     # ================================================================== #
     #  DEDUPLICATION MERGE                                                 #
     # ================================================================== #
