@@ -39,7 +39,6 @@ class PackageDelivery:
 
     async def upload_mission(self, rtl:bool = True):
         
-        await self.turn_hook(sleep=10, opposite=True)
 
         '''
         await takeoff(drone=self.drone, target_alt=self.alt) 
@@ -53,6 +52,31 @@ class PackageDelivery:
             await return_to_launch(self.drone)
         pass
         '''
+        asyncio.create_task(self.camera())
+        # asyncio.create_task(self.sim_camera())
+        await asyncio.create_task(self.movement_mission(rtl))
+        pass
+
+    async def movement_mission(self, rtl: bool = True):
+        # swap back if u need to current: 1.  reposition the gimbal 2. takeoff
+
+        # await reposition_gimbal(drone=self.drone, pitch=-90)
+        await takeoff(drone=self.drone, target_alt=self.takeoff_alt)
+        await reposition_drone_deg(drone=self.drone, coordinates=self.drop_loc)
+
+        print(f'DROP LOC IS {self.drop_loc}')
+        is_centered = False
+        while not is_centered:
+            is_centered = await self.bullseye_mission()
+
+            print(is_centered)
+            await asyncio.sleep(0.1)
+
+        await self.turn_hook(sleep=300, opposite=False)
+        if rtl:
+            await return_to_launch(drone=self.drone)
+
+
 
     async def turn_hook(self, opposite=False, sleep=5):
         print('does this fucking drone work? start the fucking servos')
@@ -135,16 +159,22 @@ class PackageDelivery:
             return
 
         print("Stream Started. Press 'q' to exit.")
-
+        counter = 0
         while True:
             ret, frame = cap.read()
             if not ret:
+
                 print("Empty frame received. Check connections.")
+                if counter >= 15:
+                    await return_to_launch(drone=self.drone)
+                counter += 1
                 break
             else:
+                if counter > 0:
+                    counter = 0
                 self.set_camera_frame(frame)
             await asyncio.sleep(1)
- 
+
     def calculate_movement_to_center(self, target_x, target_y, frame_width, frame_height):
         """
         Calculate velocity commands to center drone on target
