@@ -76,7 +76,7 @@ class TargetLocalization:
         self.visited_gcps: set[tuple] = set()
 
         # YOLO model loaded ONCE at construction — never reloaded per frame.
-        self.model = YOLO("best.onnx") #change this .engine file
+        self.model = YOLO("best.engine") #change this .engine file
 
         self.classifer = TensorRTModel("classifer.engine")
         self.final_gcp_location = []
