@@ -31,7 +31,7 @@ class PackageDrop:
         self.status_frame = False
         # Bullseye mission constants
         self.MIN_ALT_METERS = 15
-        self.PIXEL_TOLERANCE = 20
+        self.PIXEL_TOLERANCE = 40
         self.GAIN = 0.002
         self.MAX_VEL = 1.0
         pass
@@ -45,7 +45,7 @@ class PackageDrop:
     async def movement_mission(self, rtl: bool = True):
         #swap back if u need to current: 1.  reposition the gimbal 2. takeoff
 
-       #await reposition_gimbal(drone=self.drone, pitch=-90)
+        await reposition_gimbal(drone=self.drone, pitch=-90)
         await takeoff(drone=self.drone, target_alt=self.takeoff_alt)
         await reposition_drone_deg(drone=self.drone, coordinates=self.drop_loc)
 
@@ -154,7 +154,7 @@ class PackageDrop:
                 if counter > 0:
                     counter=0
                 self.set_camera_frame(frame)
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
  
     def calculate_movement_to_center(self, target_x, target_y, frame_width, frame_height):
         """

@@ -14,7 +14,7 @@ from utils.armdisarm import *
 from utils.drone import Drone
 from utils.reposition import *
 from utils.takeoff import *
-from helper.TensorRTClassifer import TensorRTModel, preprocess_image
+#from helper.TensorRTClassifer import TensorRTModel, preprocess_image
 import numpy as np
 '''
 • 5-10 objects will be distributed within a predefined area of the competition course.
@@ -132,7 +132,7 @@ class TargetLocalization:
 
         if rtl:
             await return_to_launch(drone=self.drone)
-
+'''
     # ================================================================== #
     #  CONTINUOUS DETECTION  (whole-mission background task)               #
     # ================================================================== #
@@ -548,3 +548,4 @@ def pixel_to_world(cx: float, cy: float,
                    world_width: float, world_height: float) -> tuple[float, float]:
     """Map pixel coordinates to world-space coordinates."""
     return (cx / map_width) * world_width, (cy / map_height) * world_height
+'''
