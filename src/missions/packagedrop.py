@@ -262,6 +262,7 @@ class PackageDrop:
             # 3. STOPPING PHASE - Stop when drone reaches center within tolerance
             if not self.stop_movement_when_centered(is_centered):
                 print("Mission complete - drone centered on bullseye!")
+                cv2.imwrite("finalframe.jpf", frame)
                 await reposition_velocity(drone=self.drone, vx=0, vy=0, vz=0) # CHANGE TO LOITER IF NECESSARY
                 return True
         
