@@ -1,6 +1,8 @@
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
 import asyncio
+import os
+from datetime import datetime
 
 class bcolors:
     # https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
@@ -20,10 +22,14 @@ class bcolors:
 
 async def logger(stream:asyncio.Queue): 
     '''DEPRECATED - Functionality of this function integrated into handle_message() in messages.py'''
+    filename = datetime.datetime.now().strftime("log_%Y-%m-%d_%H-%M-%S.txt")
     while True:
         msg = await stream.get()
         # print('getting from message-stream')
         log_message(msg)
+        with open(f'./logs/{filename}', "a") as f:
+            now = datetime.datetime.now().strftime("[%H:%M:%S]")
+            f.write(f"{now} > {msg}\n")
 
 def log_message(msg):
     '''Used to log MAVLINK messages ONLY. DO NOT USE FOR CUSTOM MESSAGES'''

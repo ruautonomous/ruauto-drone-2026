@@ -34,6 +34,7 @@ class PackageDrop:
         self.PIXEL_TOLERANCE = 40
         self.GAIN = 0.002
         self.MAX_VEL = 1.0
+        self.SLEEP_WAIT = 0.1
         pass
 
     async def upload_mission(self, rtl: bool = True):
@@ -52,11 +53,16 @@ class PackageDrop:
 
         print(f'DROP LOC IS {self.drop_loc}')
         is_centered  = False
+        counter = 0
         while  not is_centered:
-            is_centered = await self.bullseye_mission()
+            if(counter > (1/self.SLEEP_WAIT) * 60):
+                break
 
+            is_centered = await self.bullseye_mission()
+            
             print(is_centered)
-            await asyncio.sleep(0.1)
+            counter+=1
+            await asyncio.sleep(self.SLEEP_WAIT)
 
         await self.drop_package()
         if rtl:
@@ -237,9 +243,7 @@ class PackageDrop:
                 print("No camera frame available")
                 return False
 
-            if i<20:
-                cv2.imwrite(f"frame_{i}.jpeg", frame)
-                i+=1
+            
             detection_result = self.detect_bullseye(frame)
         
             if detection_result is None:
