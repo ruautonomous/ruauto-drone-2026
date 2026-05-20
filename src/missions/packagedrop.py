@@ -55,10 +55,12 @@ class PackageDrop:
         cv2.imwrite(f"frame_drop.jpg", self._get_camera_frame())
         is_centered  = False
         counter = 0
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (640, 480))
         while  not is_centered:
             if(counter > (1/self.SLEEP_WAIT) * 60):
                 break
-
+            out.write(self._get_camera_frame())
             is_centered = await self.bullseye_mission()
             
             print(is_centered)
@@ -66,6 +68,7 @@ class PackageDrop:
             await asyncio.sleep(self.SLEEP_WAIT)
 
         await self.drop_package()
+        out.release()
         if rtl:
             await return_to_launch(drone=self.drone)
 

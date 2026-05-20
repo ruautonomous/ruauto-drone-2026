@@ -85,8 +85,9 @@ class PackageDelivery:
             print(is_centered)
             counter += 1
             await asyncio.sleep(self.SLEEP_WAIT)
-        out.release()
+
         await self.turn_hook(sleep=300, opposite=False)
+        out.release()
         if rtl:
             await return_to_launch(drone=self.drone)
 
