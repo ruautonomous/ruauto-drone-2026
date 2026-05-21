@@ -132,7 +132,7 @@ class TargetLocalization:
 
         if rtl:
             await return_to_launch(drone=self.drone)
-'''
+
     # ================================================================== #
     #  CONTINUOUS DETECTION  (whole-mission background task)               #
     # ================================================================== #
@@ -548,4 +548,4 @@ def pixel_to_world(cx: float, cy: float,
                    world_width: float, world_height: float) -> tuple[float, float]:
     """Map pixel coordinates to world-space coordinates."""
     return (cx / map_width) * world_width, (cy / map_height) * world_height
-'''
+
