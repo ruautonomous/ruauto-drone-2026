@@ -31,33 +31,36 @@ class PackageDrop:
         self.status_frame = False
         # Bullseye mission constants
         self.MIN_ALT_METERS = 15
-        self.PIXEL_TOLERANCE = 40
+        self.PIXEL_TOLERANCE = 15
         self.GAIN = 0.002
-        self.MAX_VEL = 1.0
+        self.MAX_VEL =0.8 
         self.SLEEP_WAIT = 0.1
         pass
 
     async def upload_mission(self, rtl: bool = True):
-        asyncio.create_task(self.camera())
-        #asyncio.create_task(self.sim_camera())
+        #asyncio.create_task(self.camera())
+        asyncio.create_task(self.sim_camera())
         await asyncio.create_task(self.movement_mission(rtl))
         pass
 
     async def movement_mission(self, rtl: bool = True):
         #swap back if u need to current: 1.  reposition the gimbal 2. takeoff
-
+        effective_alt = max(self.takeoff_alt, self.MIN_ALT_METERS)
         await reposition_gimbal(drone=self.drone, pitch=-90)
-        await takeoff(drone=self.drone, target_alt=self.takeoff_alt)
+        await takeoff(drone=self.drone, target_alt=effective_alt)
         await reposition_drone_deg(drone=self.drone, coordinates=self.drop_loc)
 
 
         print(f'DROP LOC IS {self.drop_loc}')
+        cv2.imwrite(f"frame_drop.jpg", self._get_camera_frame())
         is_centered  = False
         counter = 0
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (640, 480))
         while  not is_centered:
             if(counter > (1/self.SLEEP_WAIT) * 60):
                 break
-
+            out.write(self._get_camera_frame())
             is_centered = await self.bullseye_mission()
             
             print(is_centered)
@@ -65,6 +68,7 @@ class PackageDrop:
             await asyncio.sleep(self.SLEEP_WAIT)
 
         await self.drop_package()
+        out.release()
         if rtl:
             await return_to_launch(drone=self.drone)
 
@@ -95,7 +99,7 @@ class PackageDrop:
         )
         
         if circles is not None:
-            circles = np.uint16(np.around(circles))
+            circles = np.int32(np.around(circles))
             
             # If multiple circles detected, find the center of concentric circles
             if len(circles[0]) > 1:
@@ -114,7 +118,7 @@ class PackageDrop:
         return None
     async def sim_camera(self):
         cap = cv2.VideoCapture("drone.sdp", cv2.CAP_FFMPEG)
-
+        i =0
         if not cap.isOpened():
             print("CRITICAL ERROR: Cannot open camera.")
             exit()
@@ -128,6 +132,7 @@ class PackageDrop:
                 break
             else:
                 self.set_camera_frame(frame)
+                #cv2.imwrite(f"frame{i}.jpg",frame)
             await asyncio.sleep(0.01) #for simulation
 
     async def camera(self):
@@ -178,7 +183,7 @@ class PackageDrop:
         # Check if centered within tolerance
         is_centered = (abs(error_x) < self.PIXEL_TOLERANCE and 
                       abs(error_y) < self.PIXEL_TOLERANCE)
-        
+      
         if is_centered:
             return (0, 0, 0, True)
         
@@ -190,7 +195,7 @@ class PackageDrop:
         
         # Convert to velocity commands
         vx = -error_y * self.GAIN  # forward/back (NED frame)
-        vy = -error_x * self.GAIN  # left/right (NED frame)
+        vy = error_x * self.GAIN  # left/right (NED frame)
         vz = 0  # hold altitude by default
         
         # Clamp velocities to maximum
@@ -249,24 +254,24 @@ class PackageDrop:
             if detection_result is None:
                 print("No bullseye detected")
                 return False
-        
+            #cv2.imwrite("frame.jpg",frame)
             target_x, target_y, radius = detection_result
             print(f"Bullseye detected at: ({target_x}, {target_y}), radius: {radius}")
         
             # 2. MOVEMENT PHASE - Calculate movement using detected center
             current_alt = await self.drone.get_altitude()
             vx, vy, vz, is_centered = self.calculate_movement_to_center(
-                target_x, target_y, frame_width, frame_height
+                int(target_x), int(target_y), frame_width, frame_height
             )
         
             # Altitude safety check
             if current_alt < self.MIN_ALT_METERS:
-                vz = 0.5  # ascend slightly
+                vz = -0.5  # ascend slightly
         
             # 3. STOPPING PHASE - Stop when drone reaches center within tolerance
             if not self.stop_movement_when_centered(is_centered):
                 print("Mission complete - drone centered on bullseye!")
-                cv2.imwrite("finalframe.jpf", frame)
+                cv2.imwrite("finalframe.jpg", frame)
                 await reposition_velocity(drone=self.drone, vx=0, vy=0, vz=0) # CHANGE TO LOITER IF NECESSARY
                 return True
         
