@@ -1,5 +1,6 @@
 src/missions/__pycache__/
 src/utils/__pycache__/
 src/helper/__pycache__/
-
+src/imaging/
+*.swp
 .idea
