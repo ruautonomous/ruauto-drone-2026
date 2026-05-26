@@ -31,8 +31,13 @@ async def logger(stream:asyncio.Queue):
             now = datetime.datetime.now().strftime("[%H:%M:%S]")
             f.write(f"{now} > {msg}\n")
 
-def log_message(msg):
+def log_message(msg, filename):
     '''Used to log MAVLINK messages ONLY. DO NOT USE FOR CUSTOM MESSAGES'''
+
+    with open(f'./logs/{filename}', "a") as f:
+            now = datetime.datetime.now().strftime("[%H:%M:%S]")
+            f.write(f"{now} > {msg}\n")
+            
     if msg.msgname == 'HEARTBEAT' and msg.type == 2:
         print(f'{bcolors.HEARTBEAT + 'Drone -> GCS' + bcolors.ENDC} {msg}')
         return

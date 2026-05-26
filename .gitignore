@@ -4,3 +4,4 @@ src/helper/__pycache__/
 src/imaging/
 *.swp
 .idea
+*.jpeg

@@ -3,7 +3,7 @@ from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
 from utils.logger import log_custom, log_message, log_system, bcolors, logger
 import helper.file_reader as reader 
-
+from datetime import datetime
 class MessageStream:
 
     
@@ -14,6 +14,8 @@ class MessageStream:
         log_system(msg="Initializing Message Stream")
         self.stream = asyncio.Queue()
         self.listening = False
+        filename = datetime.datetime.now().strftime("log_%Y-%m-%d_%H-%M-%S.txt")
+        self.filename = filename
         # asyncio.create_task(self.message_stream())
         
         pass
@@ -32,7 +34,7 @@ class MessageStream:
         while True:
             msg = self.connection.recv_match(blocking=False) 
             if msg:
-                log_message(msg)
+                log_message(msg=msg, filename=self.filename)
                 try:
                     asyncio.create_task(self.handle_message(msg))
                 except TimeoutError:

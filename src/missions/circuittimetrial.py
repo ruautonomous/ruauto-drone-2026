@@ -12,6 +12,7 @@ from utils.takeoff import return_to_launch
 from helper.file_reader import read_waypoints
 import time
 class CircuitTimeTrial:
+    TIMING_CUTOFF_MINS = 8 # maximum time after which the drone should return to launch instead of starting a new lap
     def __init__(self, drone: Drone, waypointsFile: str = None):
         self.drone = drone
         self.custom_points = read_waypoints(waypointsFile) if waypointsFile else None
@@ -31,6 +32,10 @@ class CircuitTimeTrial:
         while True:
             if lap > 3:
                 break
+            
+            if total_time_elapsed >= (self.TIMING_CUTOFF_MINS * 60):
+                break
+
             if lap == 1:
                 await self.mission_handler.upload_mission(waypoints=waypoints, begin_immediately=False, rtl=True)
                 lap_start = time.perf_counter()

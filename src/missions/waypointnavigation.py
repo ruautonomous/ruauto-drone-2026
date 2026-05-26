@@ -27,6 +27,7 @@ class   WaypointNavigation:
         current_pos = [current_pos['lat'],current_pos['long'],current_pos['alt']]
         sorted_points = []
         size = len(waypoints)
+        # print(f'UNSORTED POINTS: {waypoints}')
         for i in range(size):
             next_point = None
             distance = 1e11
@@ -37,8 +38,8 @@ class   WaypointNavigation:
             sorted_points.append(next_point)
             waypoints.remove(next_point)
             current_pos = next_point
-
-
+        
+        # print(f'\nSORTED POINTS: {sorted_points}')
         return sorted_points
 
     async def upload_mission(self, waypointsFile = None, rtl = True):
