@@ -14,7 +14,7 @@ from utils.armdisarm import *
 from utils.drone import Drone
 from utils.reposition import *
 from utils.takeoff import *
-#from helper.TensorRTClassifer import TensorRTModel, preprocess_image
+from helper.TensorRTClassifer import TensorRTModel, preprocess_image
 import numpy as np
 '''
 • 5-10 objects will be distributed within a predefined area of the competition course.
@@ -143,8 +143,11 @@ class TargetLocalization:
         YOLO, and merges unique detections into self.gcp_squares.
         This covers both the lawnmower AND all TSP transit legs.
         """
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (640, 480))
         while not self._mission_done.is_set():
             if self.newest_frame is not None:
+                out.write(self.newest_frame)
                 detections = await self._detect_objects()
                 added = self._merge_detections(detections)
                 if added:
@@ -373,7 +376,7 @@ class TargetLocalization:
     # ================================================================== #
     #  LAWNMOWER SEARCH                                                    #
     # ================================================================== #
-    async def lawnmower_search(self, lane_spacing_meters: float = 5):
+    async def lawnmower_search(self, lane_spacing_meters: float = 15):
         """
         Fly a boustrophedon (lawnmower) sweep inside the geofence polygon.
         Lanes are evenly spaced by lane_spacing_meters in latitude and
@@ -548,4 +551,3 @@ def pixel_to_world(cx: float, cy: float,
                    world_width: float, world_height: float) -> tuple[float, float]:
     """Map pixel coordinates to world-space coordinates."""
     return (cx / map_width) * world_width, (cy / map_height) * world_height
-
