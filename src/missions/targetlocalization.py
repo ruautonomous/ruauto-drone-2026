@@ -51,7 +51,7 @@ class TargetLocalization:
     LANE_LONG_TOLERANCE_DEG = 1e-6
 
     # --- Detection / deduplication / routing ---
-    GCP_DEDUP_MIN_DIST_M = 3.0  # closer than this → same object (metres)
+    GCP_DEDUP_MIN_DIST_M = 4.0  # closer than this → same object (metres)
     DETECTION_INTERVAL_S = 0.5  # how often YOLO runs throughout the mission
     CAMERA_INTERVAL_S = 0.033  # camera capture cadence (~30 fps)
 
@@ -109,15 +109,15 @@ class TargetLocalization:
              arrival so targets discovered mid-route are never skipped.
           5. Signal detection to stop, then RTL.
         """
-        await takeoff(drone=self.drone, target_alt=self.MIN_ALT_METERS)
-        await reposition_gimbal(drone=self.drone, pitch=-90)
-
         # Camera stream — persistent background task for the whole mission.
         if self.sim:
             asyncio.create_task(self.sim_camera())
 
         else:
             asyncio.create_task(self.camera())
+
+        await takeoff(drone=self.drone, target_alt=self.MIN_ALT_METERS)
+        await reposition_gimbal(drone=self.drone, pitch=-90)
 
         # Detection — runs from takeoff until _mission_done is set.
         # Critically, it is NOT cancelled after the lawnmower; it continues

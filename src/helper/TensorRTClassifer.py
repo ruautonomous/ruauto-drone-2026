@@ -77,4 +77,3 @@ def preprocess_image(img):
     img = np.transpose(img, (2, 0, 1)) # HWC to CHW
     img = np.expand_dims(img, axis=0)  # Add batch dimension
     return img
-

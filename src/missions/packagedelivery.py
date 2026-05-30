@@ -23,6 +23,7 @@ class PackageDelivery:
         config = read_config_file(file=initFile) if initFile else None
         self.alt = 6 # 4 meters
         self.config = config
+        self.newest_frame = None
         self.drop_alt = float(config["drop_alt"])
         drop_loc: str = config['drop_loc'] 
         drop_loc = drop_loc.removesuffix('\n').split(',')

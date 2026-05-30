@@ -22,20 +22,20 @@ class bcolors:
 
 async def logger(stream:asyncio.Queue): 
     '''DEPRECATED - Functionality of this function integrated into handle_message() in messages.py'''
-    filename = datetime.datetime.now().strftime("log_%Y-%m-%d_%H-%M-%S.txt")
+    filename = datetime.now().strftime("log_%Y-%m-%d_%H-%M-%S.txt")
     while True:
         msg = await stream.get()
         # print('getting from message-stream')
         log_message(msg)
         with open(f'./logs/{filename}', "a") as f:
-            now = datetime.datetime.now().strftime("[%H:%M:%S]")
+            now = datetime.now().strftime("[%H:%M:%S]")
             f.write(f"{now} > {msg}\n")
 
 def log_message(msg, filename):
     '''Used to log MAVLINK messages ONLY. DO NOT USE FOR CUSTOM MESSAGES'''
-
+    os.makedirs('./logs', exist_ok=True)
     with open(f'./logs/{filename}', "a") as f:
-            now = datetime.datetime.now().strftime("[%H:%M:%S]")
+            now = datetime.now().strftime("[%H:%M:%S]")
             f.write(f"{now} > {msg}\n")
             
     if msg.msgname == 'HEARTBEAT' and msg.type == 2:
