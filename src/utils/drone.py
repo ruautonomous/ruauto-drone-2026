@@ -2,6 +2,7 @@
 import asyncio
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common
+import time
 
 # util imports
 from utils.messages import MessageStream
@@ -128,7 +129,12 @@ class Drone:
         asyncio.create_task(self.message_stream.message_stream())
         asyncio.create_task(self.set_home_position())
         asyncio.create_task(self.send_heartbeat())
+        self.start_time = time.perf_counter()
         
+    def time_since_start_seconds(self):
+        log_system(msgname="Timekeeper", msg=f"It has been {time.perf_counter() - self.start_time} since the start of the flight")
+        return (time.perf_counter() - self.start_time)
+    
     def unit_corrector(self, value):
         if self.meters: 
             return value

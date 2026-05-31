@@ -57,6 +57,7 @@ class TargetLocalization:
     # before declaring the mission complete.
     NEW_TARGET_WAIT_S = 5.0
 
+    TIME_CUTOFF_SECONDS = 9*60
     # ------------------------------------------------------------------ #
     #  Constructor                                                         #
     # ------------------------------------------------------------------ #
@@ -176,6 +177,9 @@ class TargetLocalization:
         """
         while True:
 
+            if(self.drone.time_since_start_seconds() < self.TIME_CUTOFF_SECONDS):
+                return
+            
             # ── Build the current unvisited list ─────────────────────────
             unvisited = [g for g in self.gcp_squares
                          if g not in self.visited_gcps]
@@ -414,6 +418,10 @@ class TargetLocalization:
             lane_lats.append(max_lat)
 
         for lane_idx, lat in enumerate(lane_lats):
+
+            if self.drone.time_since_start_seconds() > (9*60): 
+                return
+
             lane_bounds = self._get_lane_longitude_bounds(lat, polygon_points)
             if lane_bounds is None:
                 continue

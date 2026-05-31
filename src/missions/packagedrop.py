@@ -31,7 +31,7 @@ class PackageDrop:
         self.status_frame = False
         # Bullseye mission constants
         self.MIN_ALT_METERS = 15
-        self.PIXEL_TOLERANCE = 15
+        self.PIXEL_TOLERANCE = 20
         self.GAIN = 0.002
         self.MAX_VEL =0.8 
         self.SLEEP_WAIT = 0.1

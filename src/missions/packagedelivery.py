@@ -29,7 +29,7 @@ class PackageDelivery:
         self.drop_loc = [float(drop_loc[0]), float(drop_loc[1])]
         #bullseye constraints
         self.MIN_ALT_METERS=15
-        self.PIXEL_TOLERANCE = 10
+        self.PIXEL_TOLERANCE = 20
         self.GAIN = 0.002
         self.MAX_VEL = 0.8
         self.SLEEP_WAIT = 0.1
@@ -76,7 +76,7 @@ class PackageDelivery:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (640, 480))
         while not is_centered:
-            if (counter > (1 / self.SLEEP_WAIT) * 60):
+            if (counter > (1 / self.SLEEP_WAIT) * 20):
                 break
 
             out.write(self._get_camera_frame())
