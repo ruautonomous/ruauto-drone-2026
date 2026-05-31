@@ -164,7 +164,7 @@ class Drone:
             await asyncio.sleep(0.5)
     async def get_heading(self)-> float:
         current_pos = await self.get_message_stream().request_message(common.MAVLINK_MSG_ID_GLOBAL_POSITION_INT)
-        return ((float)(current_pos['hdg']))/100
+        return ((float)(current_pos.hdg))/100
         pass
     async def get_home_position_deg(self):
         home_pos = await self.get_home_position_int()

@@ -15,7 +15,10 @@ from utils.drone import Drone
 from utils.reposition import *
 from utils.takeoff import *
 from helper.TensorRTClassifer import TensorRTModel, preprocess_image
+from helper.ONNXClassifier import ONNXClassifierWrapper
 import numpy as np
+import os
+
 '''
 • 5-10 objects will be distributed within a predefined area of the competition course.
 • A very rough set of bounding GPS coordinates will be provided, and four larger objects will
@@ -32,12 +35,11 @@ import numpy as np
 
 
 class TargetLocalization:
-
     # --- Flight constants ---
-    MIN_ALT_METERS  = 30 / 3.281    # 30 ft → metres (~9.14 m)
-    PIXEL_TOLERANCE = 20            # px deadband for center_on_target
-    GAIN            = 0.002         # velocity scaling factor
-    MAX_VEL         = 1.0           # m/s cap for velocity commands
+    MIN_ALT_METERS = 50 / 3.281  # 30 ft → metres (~9.14 m)
+    PIXEL_TOLERANCE = 20  # px deadband for center_on_target
+    GAIN = 0.002  # velocity scaling factor
+    MAX_VEL = 1.0  # m/s cap for velocity commands
 
     # --- Latitude metres-per-degree approximation coefficients ---
     LAT_METERS_COEFF_A = 111132.92
@@ -45,13 +47,13 @@ class TargetLocalization:
     LAT_METERS_COEFF_C = 1.175
 
     # --- Lawnmower geometry tolerances ---
-    LANE_LAT_TOLERANCE_DEG  = 1e-6
+    LANE_LAT_TOLERANCE_DEG = 1e-6
     LANE_LONG_TOLERANCE_DEG = 1e-6
 
     # --- Detection / deduplication / routing ---
-    GCP_DEDUP_MIN_DIST_M = 1.0    # closer than this → same object (metres)
-    DETECTION_INTERVAL_S = 0.5    # how often YOLO runs throughout the mission
-    CAMERA_INTERVAL_S    = 0.033  # camera capture cadence (~30 fps)
+    GCP_DEDUP_MIN_DIST_M = 4.0  # closer than this → same object (metres)
+    DETECTION_INTERVAL_S = 0.5  # how often YOLO runs throughout the mission
+    CAMERA_INTERVAL_S = 0.033  # camera capture cadence (~30 fps)
 
     # After all known targets are visited, wait this long for new detections
     # before declaring the mission complete.
@@ -61,13 +63,13 @@ class TargetLocalization:
     # ------------------------------------------------------------------ #
     #  Constructor                                                         #
     # ------------------------------------------------------------------ #
-    def __init__(self, drone: Drone, initFile: str = None):
-        self.drone    = drone
-        self.file     = initFile
-
+    def __init__(self, drone: Drone, initFile: str = None, sim: bool = False):
+        self.drone = drone
+        self.file = initFile
+        self.sim = sim
         self.newest_frame = None
-        self.bounding     = read_geofence(initFile)
-        self.num_targets  = 10
+        self.bounding = read_geofence(initFile)
+        self.num_targets = 8
 
         # All confirmed unique detections: list of (lat, lon, 0) tuples.
         self.gcp_squares: list[tuple] = []
@@ -77,9 +79,19 @@ class TargetLocalization:
         self.visited_gcps: set[tuple] = set()
 
         # YOLO model loaded ONCE at construction — never reloaded per frame.
-        self.model = YOLO("best.engine") #change this .engine file
 
-        self.classifer = TensorRTModel("classifer.engine")
+        if self.sim:
+            self.OBJ_file = "best.onnx"
+            self.model = YOLO(self.OBJ_file, task="detect")  # change this .engine file
+            print("[Init] Simulation mode detected. Using ONNX classifier.")
+            self.classifier_file = "resnet_classifier.onnx"
+            self.classifier = ONNXClassifierWrapper(self.classifier_file)
+        else:
+            self.OBJ_file = "best.engine"
+            self.model = YOLO(self.OBJ_file)  # change this .engine file
+            print("[Init] Flight hardware mode detected. Using TensorRT classifier.")
+            self.classifier_file = "classifier.engine"
+            self.classifier = TensorRTModel(self.classifier_file)
         self.final_gcp_location = []
         # Signals the continuous detection task to exit cleanly.
         self._mission_done = asyncio.Event()
@@ -98,15 +110,24 @@ class TargetLocalization:
              arrival so targets discovered mid-route are never skipped.
           5. Signal detection to stop, then RTL.
         """
+        # Camera stream — persistent background task for the whole mission.
+        if self.sim:
+            asyncio.create_task(self.sim_camera())
+
+        else:
+            asyncio.create_task(self.camera())
+
         await takeoff(drone=self.drone, target_alt=self.MIN_ALT_METERS)
         await reposition_gimbal(drone=self.drone, pitch=-90)
-
-        # Camera stream — persistent background task for the whole mission.
-        asyncio.create_task(self.camera())
 
         # Detection — runs from takeoff until _mission_done is set.
         # Critically, it is NOT cancelled after the lawnmower; it continues
         # through every TSP waypoint so mid-route discoveries are captured.
+
+        if self.newest_frame is None:
+            await asyncio.sleep(0.1)
+
+        print("[Mission] Camera feed established! Starting detection.")
         detection_task = asyncio.create_task(self._continuous_detection())
 
         # ── Phase 1: lawnmower ──────────────────────────────────────────
@@ -128,9 +149,13 @@ class TargetLocalization:
         self._mission_done.set()
         await detection_task
 
+        with open("targetoc.txt", "w") as file:
+            for class_id, lat, long, _ in self.final_gcp_location:
+                file.write(f"{class_id},{lat}, {long}")
+
         print(f"[Mission] Done — "
               f"{len(self.visited_gcps)}/{len(self.gcp_squares)} target(s) visited.")
-
+        print(f"[FINAL GCP square locations] : {self.final_gcp_location}")
         if rtl:
             await return_to_launch(drone=self.drone)
 
@@ -155,6 +180,7 @@ class TargetLocalization:
                     print(f"[Detection] +{added} new target(s) → "
                           f"{len(self.gcp_squares)} total unique target(s).")
             await asyncio.sleep(self.DETECTION_INTERVAL_S)
+        out.release()
 
     # ================================================================== #
     #  PHASE 2 — DYNAMIC TSP VISIT                                         #
@@ -220,7 +246,7 @@ class TargetLocalization:
             # may grow before we arrive and re-evaluate.
             await reposition_drone_deg(
                 drone=self.drone, coordinates=list(next_target))
-            classified_objects = await self.classifier()
+            classified_objects = await self.classifier_operation()
 
             if classified_objects:
                 our_gcp_squares = classified_objects[0]
@@ -273,8 +299,8 @@ class TargetLocalization:
         if frame is None:
             return []
 
-        drone_pos     = await self.drone.get_position_deg()   # {"lat", "long", "alt"}
-        drone_heading = await self.drone.get_heading()        # degrees 0-359
+        drone_pos = await self.drone.get_position_deg()  # {"lat", "long", "alt"}
+        drone_heading = await self.drone.get_heading()  # degrees 0-359
 
         detections: list[tuple] = []
         results = await asyncio.to_thread(self.model.track, source=frame, stream=True, persist=True)
@@ -282,7 +308,7 @@ class TargetLocalization:
         for r in results:
             if r.boxes.id is None:
                 continue
-            boxes= r.boxes.xyxy.cpu().numpy()
+            boxes = r.boxes.xyxy.cpu().numpy()
             track_ids = r.boxes.id.cpu().numpy()
             for box, _track_id in zip(boxes, track_ids):
                 lat, lon = serve_object_coords(
@@ -294,42 +320,41 @@ class TargetLocalization:
 
         return detections
 
-    async def classifier(self):
+    async def classifier_operation(self):
         frame = self.newest_frame
         drone_pos = await self.drone.get_position_deg()  # {"lat", "long", "alt"}
         drone_heading = await self.drone.get_heading()
         results = self.model.predict(frame, conf=0.7)
         classified_objects = []
         for r in results:
-            if r.boxes.id is None:
-                continue
             boxes = r.boxes.xyxy.cpu().numpy()
-            track_ids = r.boxes.id.cpu().numpy()
+            # track_ids = r.boxes.id.cpu().numpy()
             confidence = r.boxes.conf.cpu().numpy()
-            for box, _track_ids, conf in zip(boxes, track_ids,confidence):
+            for box, conf in zip(boxes, confidence):
                 if conf >= 0.85:
                     lat, lon = serve_object_coords(
                         box, frame.shape,
                         drone_pos["lat"], drone_pos["long"],
                         drone_pos["alt"], drone_heading
                     )
-                    x1, y1, x2, y2 = box
+                    x1, y1, x2, y2 = map(int, box)
 
                     # 3. Crop the square directly from the numpy array (in memory)
                     # Note: NumPy slicing is [y_start:y_end, x_start:x_end]
-                    gcp_square = self.newest_frame[y1:y2, x1:x2]
+                    gcp_square = frame[y1:y2, x1:x2]
+                    if gcp_square.size == 0:
+                        continue
 
                     # 4. Pass the cropped array straight to your classifier
                     image = preprocess_image(gcp_square)
-                    predictions = self.classifer.predict(image)
+                    predictions = self.classifier.predict(image)
                     class_probabilities = predictions[0]
                     predicted_class_id = np.argmax(class_probabilities)
                     classified_objects.append((predicted_class_id, lat, lon, 0))
 
         return classified_objects
 
-                # write to text file
-
+        # write to text file
 
     # ================================================================== #
     #  DEDUPLICATION MERGE                                                 #
@@ -364,7 +389,7 @@ class TargetLocalization:
         Returns the complete ordered route starting from whichever target
         minimises total Haversine distance from start.
         """
-        best_cost  = float('inf')
+        best_cost = float('inf')
         best_order = targets[:]
 
         for perm in itertools.permutations(targets):
@@ -372,7 +397,7 @@ class TargetLocalization:
             for i in range(len(perm) - 1):
                 cost += haversine_distance(perm[i], perm[i + 1])
             if cost < best_cost:
-                best_cost  = cost
+                best_cost = cost
                 best_order = list(perm)
 
         return best_order
@@ -400,17 +425,17 @@ class TargetLocalization:
 
         center_lat_rad = math.radians((min_lat + max_lat) / 2.0)
         meters_per_degree_lat = (
-            self.LAT_METERS_COEFF_A
-            - self.LAT_METERS_COEFF_B * math.cos(2 * center_lat_rad)
-            + self.LAT_METERS_COEFF_C * math.cos(4 * center_lat_rad)
+                self.LAT_METERS_COEFF_A
+                - self.LAT_METERS_COEFF_B * math.cos(2 * center_lat_rad)
+                + self.LAT_METERS_COEFF_C * math.cos(4 * center_lat_rad)
         )
         lane_spacing_deg_lat = lane_spacing_meters / meters_per_degree_lat
 
         current_pos = await self.drone.get_position_deg()
-        search_alt  = max(current_pos["alt"], self.MIN_ALT_METERS)
+        search_alt = max(current_pos["alt"], self.MIN_ALT_METERS)
 
         lane_lats = [min_lat]
-        lane_lat  = min_lat + lane_spacing_deg_lat
+        lane_lat = min_lat + lane_spacing_deg_lat
         while lane_lat < max_lat - self.LANE_LAT_TOLERANCE_DEG:
             lane_lats.append(lane_lat)
             lane_lat += lane_spacing_deg_lat
@@ -435,11 +460,44 @@ class TargetLocalization:
             await reposition_drone_deg(
                 drone=self.drone, coordinates=[lat, start_long, search_alt])
             await reposition_drone_deg(
-                drone=self.drone, coordinates=[lat, end_long,   search_alt])
+                drone=self.drone, coordinates=[lat, end_long, search_alt])
 
     # ================================================================== #
     #  CAMERA CAPTURE LOOP                                                 #
     # ================================================================== #
+    def set_camera_frame(self, frame):
+        self.newest_frame = frame
+
+    def _get_camera_frame(self):
+        """
+        Placeholder for camera frame acquisition
+        You need to implement this based on your camera setup
+        """
+        return self.newest_frame
+        # Example implementation:
+        # return your_camera.get_frame()
+        pass
+
+    async def sim_camera(self):
+        cap = cv2.VideoCapture("drone.sdp", cv2.CAP_FFMPEG)
+        i = 0
+        if not cap.isOpened():
+            print("CRITICAL ERROR: Cannot open camera.")
+            exit()
+
+        print("Camera connected! Waiting for frames...")
+
+        while True:
+            ret, frame = await asyncio.to_thread(cap.read)
+            if not ret:
+                print("Can't receive frame. Is Gazebo streaming?")
+                break
+            else:
+                print(f"receiveing_data:{frame.size}")
+                self.set_camera_frame(frame)
+                # cv2.imwrite(f"frame{i}.jpg",frame)
+            await asyncio.sleep(0.01)  # for simulation
+
     async def camera(self):
         """
         Continuously reads frames from the SIYI A8 Mini via V4L2 and stores
@@ -447,7 +505,7 @@ class TargetLocalization:
         cap.release() in a finally block prevents resource leaks.
         """
         cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH,  1920)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
         if not cap.isOpened():
@@ -480,7 +538,7 @@ class TargetLocalization:
           vy — left/right    (camera X error → drone Y in NED)
           vz — hold alt; ascend if below MIN_ALT_METERS (NED: -z = up)
         """
-        error_x = target_x - frame_width  // 2
+        error_x = target_x - frame_width // 2
         error_y = target_y - frame_height // 2
         print(f"[Center] Error X: {error_x}  Error Y: {error_y}")
 
@@ -502,7 +560,7 @@ class TargetLocalization:
     # ================================================================== #
     def _get_ordered_polygon_points(self, points: list) -> list:
         """Sort polygon vertices by polar angle around their centroid."""
-        center_lat  = sum(p[0] for p in points) / len(points)
+        center_lat = sum(p[0] for p in points) / len(points)
         center_long = sum(p[1] for p in points) / len(points)
         return sorted(
             points,
@@ -517,21 +575,21 @@ class TargetLocalization:
         Returns [min_long, max_long] or None if the lane misses the polygon.
         """
         intersections: list[float] = []
-        lat_tol  = self.LANE_LAT_TOLERANCE_DEG
+        lat_tol = self.LANE_LAT_TOLERANCE_DEG
         long_tol = self.LANE_LONG_TOLERANCE_DEG
-        size     = len(polygon_points)
+        size = len(polygon_points)
 
         for idx in range(size):
             lat_1, long_1 = polygon_points[idx]
             lat_2, long_2 = polygon_points[(idx + 1) % size]
 
-            if abs(lat_2 - lat_1) <= lat_tol:           # horizontal edge
+            if abs(lat_2 - lat_1) <= lat_tol:  # horizontal edge
                 if abs(lane_lat - lat_1) <= lat_tol:
                     intersections.extend([min(long_1, long_2),
                                           max(long_1, long_2)])
                 continue
 
-            if not (min(lat_1, lat_2) - lat_tol         # lane outside span
+            if not (min(lat_1, lat_2) - lat_tol  # lane outside span
                     <= lane_lat
                     <= max(lat_1, lat_2) + lat_tol):
                 continue

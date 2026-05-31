@@ -14,7 +14,7 @@ class MessageStream:
         log_system(msg="Initializing Message Stream")
         self.stream = asyncio.Queue()
         self.listening = False
-        filename = datetime.datetime.now().strftime("log_%Y-%m-%d_%H-%M-%S.txt")
+        filename = datetime.now().strftime("log_%Y-%m-%d_%H-%M-%S.txt")
         self.filename = filename
         # asyncio.create_task(self.message_stream())
         

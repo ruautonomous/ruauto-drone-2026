@@ -23,6 +23,7 @@ class PackageDrop:
         self.drone = drone
         config = read_config_file(file=file)
         self.config = config
+        self.newest_frame = None
         self.takeoff_alt = float(config["takeoff_alt"])
         self.drop_alt = float(config["drop_alt"])
         drop_loc: str = config['drop_loc'] 
@@ -52,7 +53,11 @@ class PackageDrop:
 
 
         print(f'DROP LOC IS {self.drop_loc}')
-        cv2.imwrite(f"frame_drop.jpg", self._get_camera_frame())
+        current_frame = self._get_camera_frame()
+        if current_frame is not None:
+            cv2.imwrite("frame_drop.jpg", current_frame)
+        else:
+          print("Warning: Camera frame is None. Skipping frame_drop.jpg")
         is_centered  = False
         counter = 0
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')

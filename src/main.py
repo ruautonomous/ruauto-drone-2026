@@ -23,12 +23,12 @@ async def main():
     drone = Drone()
     drone.initialize_drone(parametersFile='info_files/settings.txt', configFile='info_files/config.txt')
     # mission = Mission(drone=drone, waypointsFile='info_files/waypoints.txt')
-    fence = Geofence(drone=drone, geofenceFile=config['fenceFile'])
+    #fence = Geofence(drone=drone, geofenceFile=config['fenceFile'])
     
     await asyncio.gather(
         drone.start_background_processes(), 
         drone.watch_for_heartbeat(),
-        fence.upload_fence(),
+        #fence.upload_fence(),
         mission_picker(drone)
         )
 
@@ -82,8 +82,8 @@ async def mission_picker(drone: Drone):
                 await circuitTimeTrial.upload_mission(rtl = mission_rtl)
             case 3:
                 targetLocalization = TargetLocalization(drone, read_file)
-                await targetLocalization.upload_mission(rtl = mission_rtl)
-                print('target localization')
+                #await targetLocalization.upload_mission(rtl = mission_rtl)
+                #print('target localization')
             case 4:
                 packageDrop = PackageDrop(drone, read_file)
                 await packageDrop.upload_mission(rtl = mission_rtl)
