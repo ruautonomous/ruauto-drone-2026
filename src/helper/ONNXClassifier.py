@@ -13,7 +13,7 @@ class ONNXClassifierWrapper:
 
         # Define execution providers. It will try CUDA (GPU) first,
         # and seamlessly fall back to CPU if no GPU is available on your dev machine.
-        providers = ['CPUExecutionProvider']
+        providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
 
         try:
             self.session = ort.InferenceSession(model_path, providers=providers)
