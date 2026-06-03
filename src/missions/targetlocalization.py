@@ -15,7 +15,7 @@ from utils.drone import Drone
 from utils.reposition import *
 from utils.takeoff import *
 from helper.TensorRTClassifer import TensorRTModel, preprocess_image
-from helper.ONNXClassifier import ONNXClassifierWrapper
+from helper.ONNXClassifier_ilab import ONNXClassifierWrapper
 import numpy as np
 import os
 
@@ -80,12 +80,14 @@ class TargetLocalization:
 
         # YOLO model loaded ONCE at construction — never reloaded per frame.
 
-        if self.sim:
-            self.OBJ_file = "best.onnx"
-            self.model = YOLO(self.OBJ_file, task="detect")  # change this .engine file
+        if self.sim is True:
             print("[Init] Simulation mode detected. Using ONNX classifier.")
             self.classifier_file = "resnet_classifier.onnx"
             self.classifier = ONNXClassifierWrapper(self.classifier_file)
+
+            self.OBJ_file = "best.onnx"
+            self.model = YOLO(self.OBJ_file, task="detect")  # change this .engine file
+
         else:
             self.OBJ_file = "best.engine"
             self.model = YOLO(self.OBJ_file)  # change this .engine file
@@ -148,8 +150,8 @@ class TargetLocalization:
         # Clean shutdown of the detection task.
         self._mission_done.set()
         await detection_task
-
-        with open("targetoc.txt", "w") as file:
+        print(f"[FINAL GCP Locations]: {self.final_gcp_location}")
+        with open("targetoc2.txt", "w") as file:
             for class_id, lat, long, _ in self.final_gcp_location:
                 file.write(f"{class_id},{lat}, {long}")
 
@@ -246,6 +248,8 @@ class TargetLocalization:
             # may grow before we arrive and re-evaluate.
             await reposition_drone_deg(
                 drone=self.drone, coordinates=list(next_target))
+
+            await asyncio.sleep(10)
             classified_objects = await self.classifier_operation()
 
             if classified_objects:
@@ -303,7 +307,7 @@ class TargetLocalization:
         drone_heading = await self.drone.get_heading()  # degrees 0-359
 
         detections: list[tuple] = []
-        results = await asyncio.to_thread(self.model.track, source=frame, stream=True, persist=True)
+        results = await asyncio.to_thread(self.model.track, source=frame, stream=True, persist=True, device=0)
 
         for r in results:
             if r.boxes.id is None:
@@ -324,7 +328,7 @@ class TargetLocalization:
         frame = self.newest_frame
         drone_pos = await self.drone.get_position_deg()  # {"lat", "long", "alt"}
         drone_heading = await self.drone.get_heading()
-        results = self.model.predict(frame, conf=0.7)
+        results = self.model.predict(frame, conf=0.7, device=0)
         classified_objects = []
         for r in results:
             boxes = r.boxes.xyxy.cpu().numpy()
@@ -405,7 +409,7 @@ class TargetLocalization:
     # ================================================================== #
     #  LAWNMOWER SEARCH                                                    #
     # ================================================================== #
-    async def lawnmower_search(self, lane_spacing_meters: float = 15):
+    async def lawnmower_search(self, lane_spacing_meters: float = 30):
         """
         Fly a boustrophedon (lawnmower) sweep inside the geofence polygon.
         Lanes are evenly spaced by lane_spacing_meters in latitude and

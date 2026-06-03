@@ -81,9 +81,9 @@ async def mission_picker(drone: Drone):
                 circuitTimeTrial = CircuitTimeTrial(drone, read_file)
                 await circuitTimeTrial.upload_mission(rtl = mission_rtl)
             case 3:
-                targetLocalization = TargetLocalization(drone, read_file)
-                #await targetLocalization.upload_mission(rtl = mission_rtl)
-                #print('target localization')
+                targetLocalization = TargetLocalization(drone, read_file, sim =True)
+                await targetLocalization.upload_mission(rtl = mission_rtl)
+                print('target localization')
             case 4:
                 packageDrop = PackageDrop(drone, read_file)
                 await packageDrop.upload_mission(rtl = mission_rtl)

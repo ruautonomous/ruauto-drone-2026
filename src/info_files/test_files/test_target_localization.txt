@@ -1,9 +1,9 @@
 # im thinking this just has 4 bounding box coordinates
 # -- Below ex coords Mojave --
-35.0498901,-118.1521496
-35.0490636,-118.1521552
-35.0491727,-118.1510577
-35.0499784,-118.1511557
+#35.0498901,-118.1521496
+#35.0490636,-118.1521552
+#35.0491727,-118.1510577
+#35.0499784,-118.1511557
 # -- End example Mojave coords
 #
 # -- Below coordinates for livingston field
