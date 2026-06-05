@@ -39,8 +39,11 @@ class PackageDrop:
         pass
 
     async def upload_mission(self, rtl: bool = True):
-        #asyncio.create_task(self.camera())
-        asyncio.create_task(self.sim_camera())
+        try:
+            asyncio.create_task(self.camera())
+        except Exception:
+            print('error opening camera')
+        # asyncio.create_task(self.sim_camera())
         await asyncio.create_task(self.movement_mission(rtl))
         pass
 
@@ -53,27 +56,31 @@ class PackageDrop:
 
 
         print(f'DROP LOC IS {self.drop_loc}')
-        current_frame = self._get_camera_frame()
-        if current_frame is not None:
-            cv2.imwrite("frame_drop.jpg", current_frame)
-        else:
-          print("Warning: Camera frame is None. Skipping frame_drop.jpg")
-        is_centered  = False
-        counter = 0
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (640, 480))
-        while  not is_centered:
-            if(counter > (1/self.SLEEP_WAIT) * 60):
-                break
-            out.write(self._get_camera_frame())
-            is_centered = await self.bullseye_mission()
-            
-            print(is_centered)
-            counter+=1
-            await asyncio.sleep(self.SLEEP_WAIT)
-
+        try:
+            current_frame = self._get_camera_frame()
+            if current_frame is not None:
+                cv2.imwrite("frame_drop.jpg", current_frame)
+            else:
+                print("Warning: Camera frame is None. Skipping frame_drop.jpg")
+                is_centered  = False
+                counter = 0
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (640, 480))
+                while  not is_centered:
+                    if(counter > (1/self.SLEEP_WAIT) * 60):
+                        break
+                    out.write(self._get_camera_frame())
+                    is_centered = await self.bullseye_mission()
+                    
+                    print(is_centered)
+                    counter+=1
+                    await asyncio.sleep(self.SLEEP_WAIT)
+                
+                out.release()
+        except:
+            print('camera does not work. dropping now')
         await self.drop_package()
-        out.release()
+        
         if rtl:
             await return_to_launch(drone=self.drone)
 

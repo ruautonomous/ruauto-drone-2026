@@ -1,4 +1,4 @@
-import onnxruntime as ort
+#import onnxruntime as ort
 import numpy as np
 
 class ONNXClassifierWrapper:

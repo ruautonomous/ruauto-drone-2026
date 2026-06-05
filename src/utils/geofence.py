@@ -8,7 +8,7 @@ from utils.logger import log_custom
 
 
 class Geofence:
-    def __init__(self, drone: Drone, geofenceFile='info_files/fence.txt'):
+    def __init__(self, drone: Drone, geofenceFile='info_files/fences/fence.txt'):
         self.drone = drone
         self.fence = read_geofence(geofenceFile)
 
@@ -50,3 +50,19 @@ class Geofence:
                                                  0, 1, len(points), 0, 0, 0, point[0], point[1], 0,
                                                  common.MAV_MISSION_TYPE_FENCE)
             log_custom(f'Sending Fence Item {i}', important=True)
+
+    async def upload_exclusion_fence(self, points):
+        connection = self.drone.get_connection()
+        connection.mav.mission_count_send(connection.target_system, connection.target_component, len(points),
+                                          common.MAV_MISSION_TYPE_FENCE, 0)
+        log_custom(f'Sending fence length of {len(points)} | Waiting for mission request')
+        print(points)
+        for i, point in enumerate(points, start=0):
+            await self.drone.get_message_stream().wait_for_message('MISSION_REQUEST', 'MISSION_REQUEST_INT', secondary=common.MAV_MISSION_TYPE_FENCE)
+            connection.mav.mission_item_int_send(connection.target_system, connection.target_component, i,
+                                                 common.MAV_FRAME_GLOBAL_INT,
+                                                 common.MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION,
+                                                 0, 1, len(points), 0, 0, 0, point[0], point[1], 0,
+                                                 common.MAV_MISSION_TYPE_FENCE)
+            log_custom(f'Sending Exclusion Fence Item {i}', important=True)
+

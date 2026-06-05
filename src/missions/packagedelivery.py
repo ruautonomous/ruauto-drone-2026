@@ -58,8 +58,8 @@ class PackageDelivery:
             await return_to_launch(self.drone)
         pass
         '''
-        #asyncio.create_task(self.camera())
-        asyncio.create_task(self.sim_camera())
+        asyncio.create_task(self.camera())
+        # asyncio.create_task(self.sim_camera())
         await asyncio.create_task(self.movement_mission(rtl))
         pass
 

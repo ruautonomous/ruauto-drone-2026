@@ -23,12 +23,19 @@ async def main():
     drone = Drone()
     drone.initialize_drone(parametersFile='info_files/settings.txt', configFile='info_files/config.txt')
     # mission = Mission(drone=drone, waypointsFile='info_files/waypoints.txt')
-    #fence = Geofence(drone=drone, geofenceFile=config['fenceFile'])
-    
+    fence = Geofence(drone=drone, geofenceFile=config['fenceFile'])
+    # no_overfly_fence = Geofence(drone=drone)
+    # no_overfly_fence.fence = [[35.050318,-118.151982], [35.049990,-118.151979], [35.049990,-118.150762], [35.050317,-118.150761]]
+    # operator_fence = Geofence(drone=drone)
+    # operator_fence.fence = [[35.049988,-118.151710],[35.049760,-118.151707],[35.049760,-118.151122],[35.049987,-118.151122]]
     await asyncio.gather(
         drone.start_background_processes(), 
         drone.watch_for_heartbeat(),
-        #fence.upload_fence(),
+        fence.upload_fence(),
+        # fence.upload_exclusion_fence([[35.050318,-118.151982], [35.049990,-118.151979], [35.049990,-118.150762], [35.050317,-118.150761]]),
+        # fence.upload_exclusion_fence([[35.049988,-118.151710],[35.049760,-118.151707],[35.049760,-118.151122],[35.049987,-118.151122]]),
+        # no_overfly_fence.upload_fence(),
+        # operator_fence.upload_fence(),
         mission_picker(drone)
         )
 
