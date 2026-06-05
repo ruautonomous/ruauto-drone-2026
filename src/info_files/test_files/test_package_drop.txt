@@ -2,4 +2,3 @@
 drop_alt=7
 takeoff_alt=5
 drop_loc=35.049578,-118.151348
-
