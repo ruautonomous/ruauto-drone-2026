@@ -31,7 +31,7 @@ class PackageDrop:
         self.drop_loc = [float(drop_loc[0]), float(drop_loc[1])]
         self.status_frame = False
         # Bullseye mission constants
-        self.MIN_ALT_METERS = 15
+        self.MIN_ALT_METERS = 7
         self.PIXEL_TOLERANCE = 20
         self.GAIN = 0.002
         self.MAX_VEL =0.8 

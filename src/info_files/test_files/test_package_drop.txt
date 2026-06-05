@@ -1,5 +1,5 @@
 # all altitude in METERS (feet = meters x 3.281)
-drop_alt=6
+drop_alt=7
 takeoff_alt=5
 drop_loc=35.049578,-118.151348
 
