@@ -39,7 +39,7 @@ class   WaypointNavigation:
             waypoints.remove(next_point)
             current_pos = next_point
         
-        # print(f'\nSORTED POINTS: {sorted_points}')
+        print(f'\nSORTED POINTS: {sorted_points}')
         return sorted_points
 
     async def upload_mission(self, waypointsFile = None, rtl = True):
