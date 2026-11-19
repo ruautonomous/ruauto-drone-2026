@@ -42,6 +42,7 @@ class Drone:
 
     def get_fence_points(self):
         return read_geofence(self.config["fenceFile"])
+        
 
     def connect_drone(self,connection_string = 'tcp:127.0.0.1:5763', port = False):
         '''This method is used to connect to the drone given the connection string'''
@@ -118,6 +119,7 @@ class Drone:
             except TimeoutError:
                 log_system(msgname="Heartbeat Watcher (URGENT)", msg=f"Too long since last heartbeat recieved. {retries-1} retries until failsafe activation", color=bcolors.HEARTBEAT)
                 retries -= 1
+                
         i = 1
         while True:
             log_system(msg=f"Heartbeats missed: {i}", msgname="Heartbeat Watcher (CRITICAL FAILURE)", color=bcolors.FAIL)

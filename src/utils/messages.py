@@ -32,7 +32,7 @@ class MessageStream:
         self.initialize_important_messages()
         self.listening = True
         while True:
-            msg = self.connection.recv_match(blocking=False) 
+            msg = self.connection.recv_match(blocking=False) # -> None 
             if msg:
                 log_message(msg=msg, filename=self.filename)
                 try:
